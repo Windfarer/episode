@@ -8,8 +8,10 @@ import http.server
 env = Environment(loader=PackageLoader(__name__, 'templates'))
 
 template = env.get_template("default.html")
-print(template.render(say="hello world"))
-
+md = open('posts/test.md', 'r').read()
+content = markdown.markdown(md)
 f = open('site/test.html', 'w')
-f.write(template.render(say="hello world"))
+
+f.write(template.render(say=content))
+
 f.close()
