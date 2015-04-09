@@ -1,3 +1,7 @@
+---
+title: index
+template: page
+---
 ## hello world
 
 ```
