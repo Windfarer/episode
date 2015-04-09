@@ -14,13 +14,13 @@ static_folders = ["css", "js"]
 def create_site():
     env = Environment(loader=PackageLoader(__name__, 'templates'))
 
-    template = env.get_template("default.html")
+    template = env.get_template("index.html")
 
-    md = open('posts/test.md', 'r').read()
+    md = open('posts/index.md', 'r').read()
     content = markdown.markdown(md)
 
-    f = open('site/test.html', 'w')
-    f.write(template.render(say=content))
+    f = open('site/index.html', 'w')
+    f.write(template.render(content=content))
     f.close()
 
     for dir in static_folders:
