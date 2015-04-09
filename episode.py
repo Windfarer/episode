@@ -54,9 +54,11 @@ def walk_md():
                 render_folder = os.path.join(PROJECT_FOLDER, SITE_FOLDER, year, month, day)
                 if not os.path.exists(render_folder):
                     os.makedirs(render_folder)
-                f = open(os.path.join(render_folder, file_name+".html"), 'w')
+                f = open(os.path.join(render_folder, title+".html"), 'w')
                 f.write(template.render(content=content))
                 f.close()
+
+
 
 if __name__ == "__main__":
     walk_md()
