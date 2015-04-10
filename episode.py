@@ -10,9 +10,11 @@ import os
 import re
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import shutil
-
+import time
 from jinja2 import Environment, FileSystemLoader
 from markdown import Markdown
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 from docopt import docopt
 
 TEMPLATE_FOLDER = "templates"
@@ -22,6 +24,7 @@ SITE_FOLDER = "site"
 static_folders = ["css", "js"]
 EXT_LIST = [".md", ".markdown"]
 SEED_PATH = os.path.abspath("seed")
+SITE_PATH = os.path.abspath("site")
 
 md_pattern = re.compile(r"(\n)*\-+(\n)*(?P<meta>(.*?\n)*?)\-+\n")
 post_name_pattern = re.compile(r"(?P<year>(\d{4}))\-(?P<month>(\d{1,2}))\-(?P<day>(\d{1,2}))\-(?P<alias>(.+))")
@@ -117,8 +120,6 @@ class Episode:
         if os.path.exists(self.post_path):
             self._walk_files(self.post_path, self._render_html_file, PostMarkdownFile)
 
-    def watch(self):
-        pass
 
     def server(self, address="0.0.0.0", port=8000, server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
         server_address = (address, port)
@@ -127,6 +128,25 @@ class Episode:
         httpd.serve_forever()
 
 
+
+class FileChangeEventHandler(FileSystemEventHandler):
+    def on_moved(self, event):
+        print("==move====src"+event.src_path)
+        # Episode().build()
+
+    def on_created(self, event):
+        print("==create====src"+event.src_path)
+        # Episode().build()
+
+    def on_deleted(self, event):
+        # Episode().build()
+        print("==delete====src"+event.src_path)
+
+    def on_modified(self, event):
+
+        if not event.src_path.startswith(SITE_PATH):
+            Episode().build()
+            print("===modified===src"+event.src_path)
 def start_server():
     print("start server")
     Episode().server()
@@ -134,7 +154,17 @@ def start_server():
 
 def start_watch():
     print("start watch")
-    Episode().watch()
+    path = os.getcwd()
+    event_handler = FileChangeEventHandler()
+    observer = Observer()
+    observer.schedule(event_handler, path, recursive=True)
+    observer.start()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+
 
 
 def start_build():
