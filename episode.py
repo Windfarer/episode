@@ -1,4 +1,11 @@
-import argparse
+"""Usage:
+    episode new <project_name>
+    episode server <host> <port>
+    episode build
+    episode watch
+    episode -h | --help | --version
+"""
+
 import os
 import re
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -6,7 +13,7 @@ import shutil
 
 from jinja2 import Environment, FileSystemLoader
 from markdown import Markdown
-
+from docopt import docopt
 
 TEMPLATE_FOLDER = "templates"
 POST_FOLDER = "posts"
@@ -120,29 +127,36 @@ class Episode:
         httpd.serve_forever()
 
 
-# parser = argparse.ArgumentParser(description='Episode, A simple page generator.')
-# parser.add_subparsers("server", help="Start a local server to preview your site")
-# parser.add_subparsers("watch", help="Watch changes in your site")
-# parser.add_subparsers("build", help="Build your site")
-# parser.add_subparsers("new", help="Create a new site")
-#
-# p = parser.parse_args()
-#
-# def start_server(host, port):
-#     Episode().server(host, port)
-#
-#
-# def start_watch():
-#     Episode().watch()
-#
-#
-# def start_build():
-#     Episode().build()
-#
-#
-# def start_new(project_name):
-#     Episode().generate_project(project_name)
-#
-#
-# if p.server:
-#     print("server")
+def start_server():
+    print("start server")
+    Episode().server()
+
+
+def start_watch():
+    print("start watch")
+    Episode().watch()
+
+
+def start_build():
+    print("start build")
+    Episode().build()
+
+
+def start_new(project_name):
+    print("create a new project")
+    Episode().generate_project(project_name)
+
+
+def command_options(arguments):
+    if arguments["new"]:
+        start_new(arguments["<project_name>"])
+    elif arguments["build"]:
+        start_build()
+    elif arguments["server"]:
+        start_server()
+    elif arguments["watch"]:
+        start_watch()
+
+if __name__ == '__main__':
+    arguments = docopt(__doc__, version='0.0.1')
+    command_options(arguments)
