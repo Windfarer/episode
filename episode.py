@@ -1,3 +1,4 @@
+import argparse
 import os
 import re
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -104,7 +105,6 @@ class Episode:
         shutil.copytree(SEED_PATH, project_name)
 
     def build(self):
-        # shutil.rmtree(self.project_path)
         self._copy_static_files()
         self._walk_files(self.project_path, self._render_html_file, MarkdownFile)
         if os.path.exists(self.post_path):
@@ -120,6 +120,29 @@ class Episode:
         httpd.serve_forever()
 
 
-if __name__ == "__main__":
-    os.chdir("project")
-    print(os.getcwd())
+# parser = argparse.ArgumentParser(description='Episode, A simple page generator.')
+# parser.add_subparsers("server", help="Start a local server to preview your site")
+# parser.add_subparsers("watch", help="Watch changes in your site")
+# parser.add_subparsers("build", help="Build your site")
+# parser.add_subparsers("new", help="Create a new site")
+#
+# p = parser.parse_args()
+#
+# def start_server(host, port):
+#     Episode().server(host, port)
+#
+#
+# def start_watch():
+#     Episode().watch()
+#
+#
+# def start_build():
+#     Episode().build()
+#
+#
+# def start_new(project_name):
+#     Episode().generate_project(project_name)
+#
+#
+# if p.server:
+#     print("server")
