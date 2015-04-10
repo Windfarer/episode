@@ -1,9 +1,9 @@
 from jinja2 import Environment, FileSystemLoader
-import markdown
+from markdown import Markdown
 import argparse
 import os
 import re
-import http.server
+from http.server import HTTPServer, BaseHTTPRequestHandler
 import shutil
 
 PROJECT_FOLDER = "project"
@@ -13,6 +13,76 @@ SITE_FOLDER = "site"
 static_folders = ["css", "js"]
 EXT_LIST = [".md", ".markdown"]
 
+md_pattern = re.compile(r"(\n)*\-+(\n)*(?P<meta>(.*?\n)*?)\-+\n")
+post_name_pattern = re.compile(r"(?P<year>(\d{4}))\-(?P<month>(\d{1,2}))\-(?P<day>(\d{1,2}))\-(?P<title>(.+))")
+
+class MarkdownFile:
+    def __init__(self, file):
+        self.filename, self.filename_extension = os.path.splitext(file)
+        self.file = open(file, "r").read()
+        self._parse_file_name()
+        self._parse_file()
+
+    def _parse_file_name(self):
+        self.name = self.filename
+
+    def _parse_file(self):
+        matched = md_pattern.match(self.file)
+        meta = matched.group("meta").split("\n")
+        payload = dict()
+        for item in meta:
+            if item:
+                item = item.split(":")
+                if len(item) == 2:
+                    payload[item[0].lower()] = item[1].strip()
+
+        self.meta = payload
+        self.template = self.meta.get("template")
+        self.content = self.file[matched.end():]
+
+
+class PostMarkdownFile(MarkdownFile):
+    def __init__(self, file):
+        super().__init__(file)
+
+    def _parse_file_name(self):
+        self.year, self.month, self.day, self.name = re.match(post_name_pattern, self.filename)
+
+
+class Episode:
+    def __init__(self):
+        self.project_path = os.path.curdir
+        self.markdown_render = Markdown()
+        self.env = Environment(loader=FileSystemLoader(self.project_path))
+        self.template_path = os.path.join(self.project_path, TEMPLATE_FOLDER)
+        self.post_path = os.path.join(self.project_path, POST_FOLDER)
+
+    def generate_project(self):
+        pass
+
+    def build(self):
+
+        pass
+
+    def watch(self):
+        pass
+
+    def server(self, address="0.0.0.0", port=8000, server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
+        server_address = (address, port)
+        httpd = server_class(server_address, handler_class)
+        httpd.serve_forever()
+
+    def _get_template_by_name(self, template_name):
+        return self.env.get_template("{}.html".format(template_name))
+
+    def _walk_source_files(self, path):
+        pass
+
+    def _render_html_file(self, file_obj):
+        f = open(os.path.join(file_obj.name+".html"), 'w')
+        f.write(file_obj.template.render(content=file_obj.content))
+        f.close()
+        pass
 
 def create_site():
     env = Environment(loader=FileSystemLoader("project/templates"))
