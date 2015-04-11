@@ -17,6 +17,8 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from docopt import docopt
 
+
+
 TEMPLATE_FOLDER = "templates"
 POST_FOLDER = "posts"
 PAGE_FOLDER = ""
@@ -24,7 +26,7 @@ SITE_FOLDER = "site"
 static_folders = ["css", "js"]
 EXT_LIST = [".md", ".markdown"]
 SEED_PATH = os.path.abspath("seed")
-SITE_PATH = os.path.abspath("site")
+IGNORE_PATH = ["site"]
 
 md_pattern = re.compile(r"(\n)*\-+(\n)*(?P<meta>(.*?\n)*?)\-+\n")
 post_name_pattern = re.compile(r"(?P<year>(\d{4}))\-(?P<month>(\d{1,2}))\-(?P<day>(\d{1,2}))\-(?P<alias>(.+))")
@@ -128,25 +130,27 @@ class Episode:
         httpd.serve_forever()
 
 
-
 class FileChangeEventHandler(FileSystemEventHandler):
+    def __init__(self, episode_instance):
+        self.episode_instance = episode_instance
+
     def on_moved(self, event):
+        self.episode_instance.build()
         print("==move====src"+event.src_path)
-        # Episode().build()
 
     def on_created(self, event):
+        self.episode_instance.build()
         print("==create====src"+event.src_path)
-        # Episode().build()
 
     def on_deleted(self, event):
-        # Episode().build()
+        self.episode_instance.build()
         print("==delete====src"+event.src_path)
 
     def on_modified(self, event):
+        self.episode_instance.build()
+        print("===modified===src"+event.src_path)
 
-        if not event.src_path.startswith(SITE_PATH):
-            Episode().build()
-            print("===modified===src"+event.src_path)
+
 def start_server():
     print("start server")
     Episode().server()
@@ -154,10 +158,15 @@ def start_server():
 
 def start_watch():
     print("start watch")
-    path = os.getcwd()
-    event_handler = FileChangeEventHandler()
+    episode = Episode()
+    episode.build()
+    root_path = os.getcwd()
+    event_handler = FileChangeEventHandler(episode)
     observer = Observer()
-    observer.schedule(event_handler, path, recursive=True)
+    observer.schedule(event_handler, root_path, recursive=False)
+    for item in os.listdir("."):
+        if os.path.isdir(item) and item not in IGNORE_PATH:
+            observer.schedule(event_handler, item, recursive=False)
     observer.start()
     try:
         while True:
