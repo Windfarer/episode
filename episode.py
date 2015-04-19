@@ -18,7 +18,6 @@ from watchdog.events import FileSystemEventHandler
 from docopt import docopt
 
 
-
 TEMPLATE_FOLDER = "templates"
 POST_FOLDER = "posts"
 PAGE_FOLDER = ""
@@ -34,19 +33,19 @@ post_name_pattern = re.compile(r"(?P<year>(\d{4}))\-(?P<month>(\d{1,2}))\-(?P<da
 
 class MarkdownFile:
     def __init__(self, file):
-        self.filename, self.filename_extension = os.path.splitext(os.path.basename(file))
-        self.markdown_render = Markdown()
-        self.file = open(file, "r").read()
+        self._filename, self._filename_extension = os.path.splitext(os.path.basename(file))
+        self._markdown_render = Markdown()
+        self._file = open(file, "r").read()
         self._parse_file_name()
         self._parse_file()
         self.type = "page"
         self.target_path = SITE_FOLDER
 
     def _parse_file_name(self):
-        self.alias = self.filename
+        self.alias = self._filename
 
     def _parse_file(self):
-        matched = md_pattern.match(self.file)
+        matched = md_pattern.match(self._file)
         meta = matched.group("meta").split("\n")
         payload = dict()
         for item in meta:
@@ -57,7 +56,7 @@ class MarkdownFile:
 
         self.meta = payload
         self.template = self.meta.get("template") + ".html"
-        self.content = self.markdown_render.convert(self.file[matched.end():])
+        self.content = self._markdown_render.convert(self._file[matched.end():])
 
 
 class PostMarkdownFile(MarkdownFile):
@@ -67,7 +66,7 @@ class PostMarkdownFile(MarkdownFile):
         self.target_path = os.path.join(SITE_FOLDER, "posts", self.year, self.month, self.day)
 
     def _parse_file_name(self):
-        matched = re.match(post_name_pattern, self.filename)
+        matched = re.match(post_name_pattern, self._filename)
         self.year = matched.group("year")
         self.month = "{:02}".format(int(matched.group("month")))
         self.day = "{:02}".format(int(matched.group("day")))
@@ -82,18 +81,31 @@ class Episode:
         self.post_path = os.path.join(self.project_path, POST_FOLDER)
         self.page_path = os.path.join(self.project_path, PAGE_FOLDER)
         self.env = Environment(loader=FileSystemLoader(self.template_path))
+        self.posts = []
+        self.pages = []
 
     def _get_template_by_name(self, template_name):
         return self.env.get_template("{}.html".format(template_name))
 
-    def _walk_files(self, path, func, cls):
-        for file in os.listdir(path):
+    def _walk_pages(self):
+        for file in os.listdir(self.project_path):
             if os.path.splitext(file)[-1] in EXT_LIST:
-                file_obj = cls(os.path.join(path, file))
+                file_obj = MarkdownFile(os.path.join(self.project_path, file))
                 if file_obj:
+                    self.pages.append(file_obj)
                     if not os.path.exists(file_obj.target_path):
                         os.makedirs(file_obj.target_path)
-                    func(file_obj)
+                    self._render_html_file(file_obj)
+
+    def _walk_posts(self):
+        for file in os.listdir(self.post_path):
+            if os.path.splitext(file)[-1] in EXT_LIST:
+                file_obj = PostMarkdownFile(os.path.join(self.post_path, file))
+                if file_obj:
+                    self.posts.append(file_obj)
+                    if not os.path.exists(file_obj.target_path):
+                        os.makedirs(file_obj.target_path)
+                    self._render_html_file(file_obj)
 
     def _render_html_file(self, file_obj):
         target_file = os.path.join(self.project_path, file_obj.target_path, file_obj.alias) + ".html"
@@ -118,10 +130,9 @@ class Episode:
 
     def build(self):
         self._copy_static_files()
-        self._walk_files(self.project_path, self._render_html_file, MarkdownFile)
+        self._walk_pages()
         if os.path.exists(self.post_path):
-            self._walk_files(self.post_path, self._render_html_file, PostMarkdownFile)
-
+            self._walk_posts()
 
     def server(self, address="0.0.0.0", port=8000, server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
         server_address = (address, port)
@@ -173,7 +184,6 @@ def start_watch():
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
-
 
 
 def start_build():
