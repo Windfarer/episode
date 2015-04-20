@@ -16,6 +16,7 @@ from markdown import Markdown
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from docopt import docopt
+import yaml
 
 
 TEMPLATE_FOLDER = "templates"
@@ -83,6 +84,12 @@ class Episode:
         self.env = Environment(loader=FileSystemLoader(self.template_path))
         self.posts = []
         self.pages = []
+        self._get_config()
+
+    def _get_config(self):
+        config_path = os.path.join(self.project_path, "config.yaml")
+        stream = open(config_path, "r")
+        self.config = yaml.load(stream)
 
     def _get_template_by_name(self, template_name):
         return self.env.get_template("{}.html".format(template_name))
