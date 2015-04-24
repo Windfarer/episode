@@ -1,0 +1,17 @@
+# Path settings
+root: .
+destination: ./site
+plugins: ./plugins
+templates: ./templates
+
+#site settings
+title: Your Blog Title
+author: Your Name
+email: your-email@domain.com
+url: http://yourdomain.com
+paginate: 5
+time_zone: Asia/Shanghai
+
+# Serving
+host: 127.0.0.1
+port: 5000

@@ -2,14 +2,15 @@
 <html>
 <head lang="en">
     <meta charset="UTF-8">
-    <title></title>
+    <title>{{site.title}}</title>
 </head>
 <body>
-<hr />
-<p>title: index
-template: index</p>
-<hr />
-<h1>helllo</h1>
-<h2>world</h2>
+<h1>{{site.title}}</h1>
+{%for post in posts%}
+<h2>{{post.meta.title}}</h2>
+<p>{{post.formatted_date}}</p>
+<p>{{site.author}}</p>
+<div>{{post.content}}</div>
+{% endfor %}
 </body>
 </html>

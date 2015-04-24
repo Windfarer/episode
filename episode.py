@@ -11,6 +11,7 @@ import re
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import shutil
 import time
+from datetime import date
 from jinja2 import Environment, FileSystemLoader
 from markdown import Markdown
 from watchdog.observers import Observer
@@ -28,12 +29,13 @@ EXT_LIST = [".md", ".markdown"]
 SEED_PATH = os.path.abspath("seed")
 IGNORE_PATH = ["site"]
 
-md_pattern = re.compile(r"(\n)*\-+(\n)*(?P<meta>(.*?\n)*?)\-+\n")
+md_pattern = re.compile(r"(\n)*\-+(\n)*(?P<meta>(.*?\n)*?)\-+\n*?")
 post_name_pattern = re.compile(r"(?P<year>(\d{4}))\-(?P<month>(\d{1,2}))\-(?P<day>(\d{1,2}))\-(?P<alias>(.+))")
 
 
 class MarkdownFile:
     def __init__(self, file):
+
         self._filename, self._filename_extension = os.path.splitext(os.path.basename(file))
         self._markdown_render = Markdown()
         self._file = open(file, "r").read()
@@ -41,6 +43,13 @@ class MarkdownFile:
         self._parse_file()
         self.type = "page"
         self.target_path = SITE_FOLDER
+
+    @property
+    def __dict__(self):
+        return {
+            "title": self.meta["title"],
+            "content": self.content
+        }
 
     def _parse_file_name(self):
         self.alias = self._filename
@@ -51,7 +60,7 @@ class MarkdownFile:
         payload = dict()
         for item in meta:
             if item:
-                item = item.split(":")
+                item = item.split(":", 1)
                 if len(item) == 2:
                     payload[item[0].lower()] = item[1].strip()
 
@@ -64,14 +73,19 @@ class PostMarkdownFile(MarkdownFile):
     def __init__(self, file):
         super().__init__(file)
         self.type = "post"
-        self.target_path = os.path.join(SITE_FOLDER, "posts", self.year, self.month, self.day)
+        self.target_path = os.path.join(SITE_FOLDER, "posts",
+                                        str(self.date.year),
+                                        str(self.date.month),
+                                        str(self.date.day))
 
     def _parse_file_name(self):
         matched = re.match(post_name_pattern, self._filename)
-        self.year = matched.group("year")
-        self.month = "{:02}".format(int(matched.group("month")))
-        self.day = "{:02}".format(int(matched.group("day")))
+        year = int(matched.group("year"))
+        month = int(matched.group("month"))
+        day = int(matched.group("day"))
+        self.date = date(year, month, day)
         self.alias = matched.group("alias")
+        self.formatted_date = self.date.strftime("%Y/%m/%d")
 
 
 class Episode:
@@ -90,6 +104,8 @@ class Episode:
         config_path = os.path.join(self.project_path, "config.yaml")
         stream = open(config_path, "r")
         self.config = yaml.load(stream)
+        print("="*10)
+        print(self.config)
 
     def _get_template_by_name(self, template_name):
         return self.env.get_template("{}.html".format(template_name))
@@ -118,7 +134,9 @@ class Episode:
         target_file = os.path.join(self.project_path, file_obj.target_path, file_obj.alias) + ".html"
         print(target_file)
         f = open(target_file, 'w')
-        f.write(self.env.get_template(file_obj.template).render(content=file_obj.content))
+        f.write(self.env.get_template(file_obj.template).render(content=file_obj.content,
+                                                                site=self.config,
+                                                                posts=self.posts))
         f.close()
 
     def _copy_static_files(self):
@@ -137,9 +155,9 @@ class Episode:
 
     def build(self):
         self._copy_static_files()
-        self._walk_pages()
         if os.path.exists(self.post_path):
             self._walk_posts()
+        self._walk_pages()
 
     def server(self, address="0.0.0.0", port=8000, server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
         server_address = (address, port)
