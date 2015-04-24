@@ -6,11 +6,7 @@
 </head>
 <body>
 <h1>{{site.title}}</h1>
-{%for post in posts%}
-<h2>{{post.meta.title}}</h2>
-<p>{{post.formatted_date}}</p>
-<p>{{site.author}}</p>
-<div>{{post.content}}</div>
-{% endfor %}
+<h2>i'm {{site.author}}</h2>
+{{posts}}
 </body>
 </html>

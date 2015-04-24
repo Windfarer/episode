@@ -35,7 +35,6 @@ post_name_pattern = re.compile(r"(?P<year>(\d{4}))\-(?P<month>(\d{1,2}))\-(?P<da
 
 class MarkdownFile:
     def __init__(self, file):
-
         self._filename, self._filename_extension = os.path.splitext(os.path.basename(file))
         self._markdown_render = Markdown()
         self._file = open(file, "r").read()
@@ -44,27 +43,13 @@ class MarkdownFile:
         self.type = "page"
         self.target_path = SITE_FOLDER
 
-    @property
-    def __dict__(self):
-        return {
-            "title": self.meta["title"],
-            "content": self.content
-        }
-
     def _parse_file_name(self):
         self.alias = self._filename
 
     def _parse_file(self):
         matched = md_pattern.match(self._file)
-        meta = matched.group("meta").split("\n")
-        payload = dict()
-        for item in meta:
-            if item:
-                item = item.split(":", 1)
-                if len(item) == 2:
-                    payload[item[0].lower()] = item[1].strip()
-
-        self.meta = payload
+        meta = matched.group("meta")
+        self.meta = yaml.load(meta)
         self.template = self.meta.get("template") + ".html"
         self.content = self._markdown_render.convert(self._file[matched.end():])
 
@@ -107,6 +92,11 @@ class Episode:
         print("="*10)
         print(self.config)
 
+    def _format_post(self, post_obj):
+        rv = post_obj.meta
+        rv["content"] = post_obj.content
+        return rv
+
     def _get_template_by_name(self, template_name):
         return self.env.get_template("{}.html".format(template_name))
 
@@ -115,7 +105,7 @@ class Episode:
             if os.path.splitext(file)[-1] in EXT_LIST:
                 file_obj = MarkdownFile(os.path.join(self.project_path, file))
                 if file_obj:
-                    self.pages.append(file_obj)
+                    self.pages.append(self._format_post(file_obj))
                     if not os.path.exists(file_obj.target_path):
                         os.makedirs(file_obj.target_path)
                     self._render_html_file(file_obj)
@@ -125,7 +115,7 @@ class Episode:
             if os.path.splitext(file)[-1] in EXT_LIST:
                 file_obj = PostMarkdownFile(os.path.join(self.post_path, file))
                 if file_obj:
-                    self.posts.append(file_obj)
+                    self.posts.append(self._format_post(file_obj))
                     if not os.path.exists(file_obj.target_path):
                         os.makedirs(file_obj.target_path)
                     self._render_html_file(file_obj)
