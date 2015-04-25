@@ -43,6 +43,16 @@ class MarkdownFile:
         self.type = "page"
         self.target_path = SITE_FOLDER
 
+    # @property
+    # def path(self):
+    #     return "{file_path}"
+
+    @property
+    def data(self):
+        rv = self.meta
+        rv["content"] = self.content
+        return rv
+
     def _parse_file_name(self):
         self.alias = self._filename
 
@@ -63,6 +73,10 @@ class PostMarkdownFile(MarkdownFile):
                                         str(self.date.month),
                                         str(self.date.day))
 
+    @property
+    def path(self):
+        return
+
     def _parse_file_name(self):
         matched = re.match(post_name_pattern, self._filename)
         year = int(matched.group("year"))
@@ -76,14 +90,13 @@ class PostMarkdownFile(MarkdownFile):
 class Episode:
     def __init__(self):
         self.project_path = os.getcwd()
-        self.template_path = os.path.join(self.project_path, TEMPLATE_FOLDER)
-        self.site_path = os.path.join(self.project_path, SITE_FOLDER)
-        self.post_path = os.path.join(self.project_path, POST_FOLDER)
-        self.page_path = os.path.join(self.project_path, PAGE_FOLDER)
-        self.env = Environment(loader=FileSystemLoader(self.template_path))
+        self.env = Environment(loader=FileSystemLoader(self._get_path(TEMPLATE_FOLDER)))
         self.posts = []
         self.pages = []
         self._get_config()
+
+    def _get_path(self, folder):
+        return os.path.join(self.project_path, folder)
 
     def _get_config(self):
         config_path = os.path.join(self.project_path, "config.yaml")
@@ -91,11 +104,6 @@ class Episode:
         self.config = yaml.load(stream)
         print("="*10)
         print(self.config)
-
-    def _format_post(self, post_obj):
-        rv = post_obj.meta
-        rv["content"] = post_obj.content
-        return rv
 
     def _get_template_by_name(self, template_name):
         return self.env.get_template("{}.html".format(template_name))
@@ -105,17 +113,17 @@ class Episode:
             if os.path.splitext(file)[-1] in EXT_LIST:
                 file_obj = MarkdownFile(os.path.join(self.project_path, file))
                 if file_obj:
-                    self.pages.append(self._format_post(file_obj))
+                    self.pages.append(file_obj.data)
                     if not os.path.exists(file_obj.target_path):
                         os.makedirs(file_obj.target_path)
                     self._render_html_file(file_obj)
 
     def _walk_posts(self):
-        for file in os.listdir(self.post_path):
+        for file in os.listdir(self._get_path(POST_FOLDER)):
             if os.path.splitext(file)[-1] in EXT_LIST:
-                file_obj = PostMarkdownFile(os.path.join(self.post_path, file))
+                file_obj = PostMarkdownFile(os.path.join(self._get_path(POST_FOLDER), file))
                 if file_obj:
-                    self.posts.append(self._format_post(file_obj))
+                    self.posts.append(file_obj.data)
                     if not os.path.exists(file_obj.target_path):
                         os.makedirs(file_obj.target_path)
                     self._render_html_file(file_obj)
@@ -132,7 +140,7 @@ class Episode:
     def _copy_static_files(self):
         for d in static_folders:
             from_dir = os.path.join(self.project_path, d)
-            to_dir = os.path.join(self.site_path, d)
+            to_dir = os.path.join(self._get_path(SITE_FOLDER), d)
             if os.path.exists(from_dir):
                 if os.path.exists(to_dir):
                     shutil.rmtree(to_dir)
@@ -145,7 +153,7 @@ class Episode:
 
     def build(self):
         self._copy_static_files()
-        if os.path.exists(self.post_path):
+        if os.path.exists(self._get_path(POST_FOLDER)):
             self._walk_posts()
         self._walk_pages()
 
