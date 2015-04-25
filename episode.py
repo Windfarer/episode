@@ -32,59 +32,57 @@ IGNORE_PATH = ["site"]
 md_pattern = re.compile(r"(\n)*\-+(\n)*(?P<meta>(.*?\n)*?)\-+\n*?")
 post_name_pattern = re.compile(r"(?P<year>(\d{4}))\-(?P<month>(\d{1,2}))\-(?P<day>(\d{1,2}))\-(?P<alias>(.+))")
 
+md = Markdown()
 
-class MarkdownFile:
-    def __init__(self, file):
+
+class Page:
+    def __init__(self, file, path_templete="", site_path="site", date_template="%Y/%m/%d"):
+
+        self._path_template = path_templete
+        self._date_template = date_template
+        self.site_path = site_path
         self._filename, self._filename_extension = os.path.splitext(os.path.basename(file))
-        self._markdown_render = Markdown()
+
+        self.formatted_date = None
+
         self._file = open(file, "r").read()
         self._parse_file_name()
         self._parse_file()
-        self.type = "page"
-        self.target_path = SITE_FOLDER
 
-    # @property
-    # def path(self):
-    #     return "{file_path}"
 
     @property
-    def data(self):
-        rv = self.meta
-        rv["content"] = self.content
-        return rv
+    def path(self):
+        if self.type == "post":
+            return os.path.join(self.site_path, self._path_template.format(year=self.date.year,
+                                                           month=self.date.month,
+                                                           day=self.date.day))
+        else:
+            return self.site_path
 
     def _parse_file_name(self):
-        self.alias = self._filename
+        matched = re.match(post_name_pattern, self._filename)
+        if matched:
+            year = int(matched.group("year"))
+            month = int(matched.group("month"))
+            day = int(matched.group("day"))
+            self.date = date(year, month, day)
+            self.alias = matched.group("alias")
+            self.formatted_date = self.date.strftime(self._date_template)
+            self.type = "post"
+        else:
+            self.alias = self._filename
+            self.type = "page"
+
 
     def _parse_file(self):
         matched = md_pattern.match(self._file)
         meta = matched.group("meta")
-        self.meta = yaml.load(meta)
-        self.template = self.meta.get("template") + ".html"
-        self.content = self._markdown_render.convert(self._file[matched.end():])
-
-
-class PostMarkdownFile(MarkdownFile):
-    def __init__(self, file):
-        super().__init__(file)
-        self.type = "post"
-        self.target_path = os.path.join(SITE_FOLDER, "posts",
-                                        str(self.date.year),
-                                        str(self.date.month),
-                                        str(self.date.day))
-
-    @property
-    def path(self):
-        return
-
-    def _parse_file_name(self):
-        matched = re.match(post_name_pattern, self._filename)
-        year = int(matched.group("year"))
-        month = int(matched.group("month"))
-        day = int(matched.group("day"))
-        self.date = date(year, month, day)
-        self.alias = matched.group("alias")
-        self.formatted_date = self.date.strftime("%Y/%m/%d")
+        self.data = yaml.load(meta)
+        self.data["date"] = self.formatted_date if self.formatted_date else None
+        self.data["content"] = md.convert(self._file[matched.end():])
+        self.data["path"] = self.path
+        self.data["alias"] = self.alias
+        self.data["template"] += ".html"
 
 
 class Episode:
@@ -108,33 +106,32 @@ class Episode:
     def _get_template_by_name(self, template_name):
         return self.env.get_template("{}.html".format(template_name))
 
-    def _walk_pages(self):
-        for file in os.listdir(self.project_path):
-            if os.path.splitext(file)[-1] in EXT_LIST:
-                file_obj = MarkdownFile(os.path.join(self.project_path, file))
-                if file_obj:
-                    self.pages.append(file_obj.data)
-                    if not os.path.exists(file_obj.target_path):
-                        os.makedirs(file_obj.target_path)
-                    self._render_html_file(file_obj)
+    def _walk_files(self):
+        for dirpath, dirnames, filenames in os.walk(self.project_path):
+            for name in filenames:
+                if os.path.splitext(name)[-1] in EXT_LIST:
+                    file_obj = Page(os.path.join(dirpath, name), path_templete=self.config.get("path_template"))
+                    if file_obj.type == "post":
+                        self.posts.append(file_obj.data)
+                    else:
+                        self.pages.append(file_obj.data)
 
-    def _walk_posts(self):
-        for file in os.listdir(self._get_path(POST_FOLDER)):
-            if os.path.splitext(file)[-1] in EXT_LIST:
-                file_obj = PostMarkdownFile(os.path.join(self._get_path(POST_FOLDER), file))
-                if file_obj:
-                    self.posts.append(file_obj.data)
-                    if not os.path.exists(file_obj.target_path):
-                        os.makedirs(file_obj.target_path)
-                    self._render_html_file(file_obj)
+        for page in self.pages:
+            self._render_html_file(page)
+        for post in self.posts:
+            self._render_html_file(post)
 
-    def _render_html_file(self, file_obj):
-        target_file = os.path.join(self.project_path, file_obj.target_path, file_obj.alias) + ".html"
+    def _render_html_file(self, page):
+        target_file = os.path.join(page.get("path"), page.get("alias")) + ".html"
         print(target_file)
+        if not os.path.exists(page.get("path")):
+            os.makedirs(page.get("path"))
         f = open(target_file, 'w')
-        f.write(self.env.get_template(file_obj.template).render(content=file_obj.content,
+        f.write(self.env.get_template(page.get("template")).render(title=page.get("title"),
+                                                                content=page.get("cotent"),
                                                                 site=self.config,
-                                                                posts=self.posts))
+                                                                posts=self.posts,
+                                                                pages=self.pages))
         f.close()
 
     def _copy_static_files(self):
@@ -152,10 +149,9 @@ class Episode:
         shutil.copytree(SEED_PATH, project_name)
 
     def build(self):
+        shutil.rmtree(self._get_path(SITE_FOLDER))
         self._copy_static_files()
-        if os.path.exists(self._get_path(POST_FOLDER)):
-            self._walk_posts()
-        self._walk_pages()
+        self._walk_files()
 
     def server(self, address="0.0.0.0", port=8000, server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
         server_address = (address, port)

@@ -3,10 +3,11 @@ root: .
 destination: ./site
 plugins: ./plugins
 templates: ./templates
+path_template: "{year}/{month}/{day}"
 
 #site settings
-title: Your Blog Title
-author: Your Name
+title: 标题
+author: Eric 杨
 email: your-email@domain.com
 url: http://yourdomain.com
 paginate: 5
