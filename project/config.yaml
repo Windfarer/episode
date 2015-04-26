@@ -1,9 +1,14 @@
 # Path settings
 root: .
-destination: ./site
-plugins: ./plugins
-templates: ./templates
+template_folder: templates
+posts_folder: posts
+destination: site
+plugins: plugins
+templates: templates
 path_template: "{year}/{month}/{day}"
+static_folders: ["css", "js"]
+file_ext: [".md", ".markdown"]
+
 
 #site settings
 title: 标题

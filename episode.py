@@ -20,14 +20,7 @@ from docopt import docopt
 import yaml
 
 
-TEMPLATE_FOLDER = "templates"
-POST_FOLDER = "posts"
-PAGE_FOLDER = ""
-SITE_FOLDER = "site"
-static_folders = ["css", "js"]
-EXT_LIST = [".md", ".markdown"]
 SEED_PATH = os.path.abspath("seed")
-IGNORE_PATH = ["site"]
 
 md_pattern = re.compile(r"(\n)*\-+(\n)*(?P<meta>(.*?\n)*?)\-+\n*?")
 post_name_pattern = re.compile(r"(?P<year>(\d{4}))\-(?P<month>(\d{1,2}))\-(?P<day>(\d{1,2}))\-(?P<alias>(.+))")
@@ -73,7 +66,6 @@ class Page:
             self.alias = self._filename
             self.type = "page"
 
-
     def _parse_file(self):
         matched = md_pattern.match(self._file)
         meta = matched.group("meta")
@@ -88,7 +80,7 @@ class Page:
 class Episode:
     def __init__(self):
         self.project_path = os.getcwd()
-        self.env = Environment(loader=FileSystemLoader(self._get_path(TEMPLATE_FOLDER)))
+        self.env = Environment(loader=FileSystemLoader(self._get_path(self.config.get("template_folder"))))
         self.posts = []
         self.pages = []
         self._get_config()
@@ -109,7 +101,7 @@ class Episode:
     def _walk_files(self):
         for dirpath, dirnames, filenames in os.walk(self.project_path):
             for name in filenames:
-                if os.path.splitext(name)[-1] in EXT_LIST:
+                if os.path.splitext(name)[-1] in self.config.get("file_ext"):
                     file_obj = Page(os.path.join(dirpath, name), path_templete=self.config.get("path_template"))
                     if file_obj.type == "post":
                         self.posts.append(file_obj.data)
@@ -128,16 +120,16 @@ class Episode:
             os.makedirs(page.get("path"))
         f = open(target_file, 'w')
         f.write(self.env.get_template(page.get("template")).render(title=page.get("title"),
-                                                                content=page.get("cotent"),
-                                                                site=self.config,
-                                                                posts=self.posts,
-                                                                pages=self.pages))
+                                                                   content=page.get("cotent"),
+                                                                   site=self.config,
+                                                                   posts=self.posts,
+                                                                   pages=self.pages))
         f.close()
 
     def _copy_static_files(self):
-        for d in static_folders:
+        for d in self.config.get("static_folders"):
             from_dir = os.path.join(self.project_path, d)
-            to_dir = os.path.join(self._get_path(SITE_FOLDER), d)
+            to_dir = os.path.join(self._get_path(self.config.get("destination")), d)
             if os.path.exists(from_dir):
                 if os.path.exists(to_dir):
                     shutil.rmtree(to_dir)
@@ -149,7 +141,7 @@ class Episode:
         shutil.copytree(SEED_PATH, project_name)
 
     def build(self):
-        shutil.rmtree(self._get_path(SITE_FOLDER))
+        shutil.rmtree(self._get_path(self.config.get("destination")))
         self._copy_static_files()
         self._walk_files()
 
@@ -195,7 +187,7 @@ def start_watch():
     observer = Observer()
     observer.schedule(event_handler, root_path, recursive=False)
     for item in os.listdir("."):
-        if os.path.isdir(item) and item not in IGNORE_PATH:
+        if os.path.isdir(item) and item != "site":
             observer.schedule(event_handler, item, recursive=False)
     observer.start()
     try:
