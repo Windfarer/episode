@@ -33,6 +33,7 @@ def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i+n]
 
+
 class Page:
     def __init__(self, file, path_templete="", site_path="site", date_template="%Y/%m/%d"):
 
@@ -146,12 +147,10 @@ class Episode:
         for index, posts in enumerate(chunks(self.posts, pagination)):
             if index == 0:
                 f = open(os.path.join(self._get_path(self.config.get("destination")), "index.html"), 'w')
-                f.write(self.env.get_template("index.html").render({"pagination_posts": posts}))
-                f.close()
             else:
                 f = open(os.path.join(pagination_folder, "{}.html".format(str(index))), 'w')
-                f.write(self.env.get_template("index.html").render({"pagination_posts": posts}))
-                f.close()
+            f.write(self.env.get_template("index.html").render({"pagination_posts": posts}))
+            f.close()
 
 
     def _render(self):
