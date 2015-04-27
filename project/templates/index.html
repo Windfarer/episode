@@ -6,7 +6,11 @@
 </head>
 <body>
 <h1>{{site.title}}</h1>
-<h2>i'm {{site.author}}</h2>
-{{posts}}
+{% for post in pagination_posts %}
+<h2>{{post.title}}</h2>
+<p>{{post.date}}</p>
+<p>{{site.author}}</p>
+<div>{{post.content}}</div>
+{% endfor %}
 </body>
 </html>
