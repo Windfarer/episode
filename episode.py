@@ -35,11 +35,12 @@ def chunks(l, n):
 
 
 class Page:
-    def __init__(self, file, path_templete="", site_path="site", date_template="%Y/%m/%d"):
+    def __init__(self, file, config, path_templete="", site_path="site", date_template="%Y/%m/%d"):
 
         self._path_template = path_templete
         self._date_template = date_template
         self.site_path = site_path
+        self.config = config
         self._filename, self._filename_extension = os.path.splitext(os.path.basename(file))
 
         self.formatted_date = None
@@ -57,6 +58,14 @@ class Page:
         else:
             return self.site_path
 
+    @property
+    def url_path(self):
+        if self.type == "post":
+            return os.path.join(self._path_template.format(year=self.date.year,
+                                                           month=self.date.month,
+                                                           day=self.date.day))
+        else:
+            return ""
     def _parse_file_name(self):
         matched = re.match(post_name_pattern, self._filename)
         if matched:
@@ -80,6 +89,7 @@ class Page:
         self.data["path"] = self.path
         self.data["alias"] = self.alias
         self.data["template"] += ".html"
+        self.data["url"] = os.path.join(self.config.get("url"), self.url_path, self.alias)
 
 
 class Episode:
@@ -119,7 +129,7 @@ class Episode:
         for dirpath, dirnames, filenames in os.walk(self.project_path):
             for name in filenames:
                 if os.path.splitext(name)[-1] in self.config.get("file_ext"):
-                    file_obj = Page(os.path.join(dirpath, name), path_templete=self.config.get("path_template"))
+                    file_obj = Page(os.path.join(dirpath, name), config=self.config, path_templete=self.config.get("path_template"))
                     if file_obj.type == "post":
                         self.posts.append(file_obj.data)
                     else:
