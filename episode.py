@@ -115,7 +115,6 @@ class Episode:
     def _get_template_by_name(self, template_name):
         return self.env.get_template("{}.html".format(template_name))
 
-
     def _copy_static_files(self):
         for d in self.config.get("static_folders"):
             from_dir = os.path.join(self.project_path, d)
@@ -177,7 +176,7 @@ class Episode:
 
     def build(self):
         start = time.clock()
-        shutil.rmtree(self._get_path(self.config.get("destination")))
+        # shutil.rmtree(self._get_path(self.config.get("destination")))
         self._copy_static_files()
         self._walk_files()
         self._render()
