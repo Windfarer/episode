@@ -133,6 +133,7 @@ class Episode:
                         self.posts.append(file_obj.data)
                     else:
                         self.pages.append(file_obj.data)
+        self.posts.sort(key=lambda x: x["date"], reverse=True)
         self.env.globals.update({
             "posts": self.posts,
             "pages": self.pages
@@ -160,7 +161,6 @@ class Episode:
                 f = open(os.path.join(pagination_folder, "{}.html".format(str(index))), 'w')
             f.write(self.env.get_template("index.html").render({"pagination_posts": posts}))
             f.close()
-
 
     def _render(self):
         for page in self.pages:
