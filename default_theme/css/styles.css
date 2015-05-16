@@ -48,3 +48,7 @@ footer {
     padding: 20px;
 }
 
+.post_meta > h5 {
+    display: inline-block;
+    margin: 0;
+}
