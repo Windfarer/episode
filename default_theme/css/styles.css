@@ -6,10 +6,20 @@ html, body {
     font-family: "Helvetica Neue Light", "HelveticaNeue-Light", "Helvetica Neue", Calibri, Helvetica, Arial;
 }
 
+a{
+    text-decoration:none;
+    color: #777;
+}
+
 h1 {
     color: #777;
 }
 
+p {
+    font-size: 18px;
+    line-height: 2rem;
+    color: #444;
+}
 
 /*   sidebar  */
 .sidebar {
@@ -42,13 +52,20 @@ footer {
 /*   content  */
 .main {
     overflow: hidden;
+    margin-top: 20px;
+    margin-bottom: 20px;
     margin-left: 270px;
-    height: 30000px;
+    height: 3000px;
     box-shadow:  0 6px 17px 0 rgba(0,0,0,0.4);
-    padding: 20px;
+    padding: 20px 60px 20px 60px;
+    max-width: 800px;
 }
 
 .post_meta > h5 {
     display: inline-block;
     margin: 0;
+}
+
+footer {
+    color: #888;
 }
