@@ -30,6 +30,6 @@ $ episode watch
 ```
 
 ## TODO
-[] 主题
-[] 安装
-[] Build as service
+[ ] 主题
+[ ] 安装
+[ ] Build as service
