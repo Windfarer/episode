@@ -52,12 +52,10 @@ footer {
 /*   content  */
 .main {
     overflow: hidden;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    margin-left: 270px;
+    margin: 20px 30px 20px 270px;
     height: 3000px;
     box-shadow:  0 6px 17px 0 rgba(0,0,0,0.4);
-    padding: 20px 60px 20px 60px;
+    padding: 50px 60px 20px 60px;
     max-width: 800px;
 }
 

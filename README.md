@@ -1,6 +1,35 @@
 # episode
 A simple static blog generator    
-传说每个码农都会造一个自己的静态页面生成器，一开始我还不信，后来发现，自己竟然也要造了= =  
-[进度条](https://github.com/Windfarer/episode/issues/2)
 
 效果见：[windfarer.github.io](http://windfarer.github.io/)
+
+## Quick Start
+
+* 新建项目
+
+```
+$ episode new <site_name>
+```
+
+* 生成页面
+
+```
+$ episode build
+```
+
+* 启动本地服务器
+
+```
+$ episode server
+```
+
+* 监听项目变化并自动生成页面
+
+```
+$ episode watch
+```
+
+## TODO
+[] 主题
+[] 安装
+[] Build as service
