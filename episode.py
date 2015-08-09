@@ -8,6 +8,7 @@
 
 import os
 import re
+import sh
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import shutil
 from datetime import date
@@ -209,6 +210,32 @@ class Episode:
         except KeyboardInterrupt:
             observer.stop()
 
+    def deploy(self):
+        self.build()
+        self._git_push()
+
+    def _git_clone(url):
+        sh.git.clone(url)
+        sh.git.checkout("master")
+
+
+    def _checkout_or_create(branch="master"):
+        try:
+            sh.git.checkout(branch)
+        except sh.ErrorReturnCode_1 as e:
+            sh.git.checkout("-b", branch)
+
+    def _git_branch():
+        os.chdir('windfarer.github.io')
+        # print(sh.git.checkout("-b", "gh-pages"))
+        try:
+            sh.git.checkout("gh-pages")
+        except sh.ErrorReturnCode_1 as e:
+            sh.git.checkout("-b", "gh-pages")
+
+    def _git_push():
+        sh.git.push("origin", "gh-pages")
+
 
 class FileChangeEventHandler(FileSystemEventHandler):
     def __init__(self, episode):
@@ -251,6 +278,11 @@ def start_new(project_name):
     Episode().generate_project(project_name)
 
 
+def start_deploy():
+    print("deploy to github")
+    Episode().deploy()
+
+
 def command_options(arguments):
     if arguments["new"]:
         start_new(arguments["<project_name>"])
@@ -260,6 +292,8 @@ def command_options(arguments):
         start_server()
     elif arguments["watch"]:
         start_watch()
+    elif arguments["deploy"]:
+        start_deploy()
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version='0.0.1')
