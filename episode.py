@@ -153,14 +153,18 @@ class Episode:
         pagination = self.config.get("paginate")
         pagination_folder = os.path.join(self._get_path(self.config.get("destination")), "page")
         print(pagination_folder)
-        if len(self.posts) > pagination:
+        post_count = len(self.posts)
+        total_pages = post_count//pagination
+        if post_count > pagination:
             os.makedirs(pagination_folder)
         for index, posts in enumerate(chunks(self.posts, pagination)):
             if index == 0:
                 f = open(os.path.join(self._get_path(self.config.get("destination")), "index.html"), 'w')
             else:
                 f = open(os.path.join(pagination_folder, "{}.html".format(str(index))), 'w')
-            f.write(self.env.get_template("index.html").render({"pagination_posts": posts}))
+            f.write(self.env.get_template("index.html").render({"pagination_posts": posts,
+                                                                "current_page": index,
+                                                                "count": total_pages}))
             f.close()
 
     def _render(self):
@@ -217,7 +221,6 @@ class Episode:
     def _git_clone(url):
         sh.git.clone(url)
         sh.git.checkout("master")
-
 
     def _checkout_or_create(branch="master"):
         try:
