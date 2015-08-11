@@ -9,16 +9,17 @@
 import os
 import re
 import sh
-from http.server import HTTPServer, BaseHTTPRequestHandler
 import shutil
+import yaml
+import time
+import math
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import date
 from jinja2 import Environment, FileSystemLoader
 from markdown import Markdown
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from docopt import docopt
-import yaml
-import time
 
 SEED_PATH = os.path.abspath("seed")
 
@@ -52,7 +53,7 @@ class Page:
     }
 
     """
-    def __init__(self, file, config, path_templete="", site_path="post", date_template="%Y/%m/%d"):
+    def __init__(self, file, config, path_templete="", site_path="site", date_template="%Y/%m/%d"):
 
         self._path_template = path_templete
         self._date_template = date_template
@@ -69,9 +70,10 @@ class Page:
     @property
     def path(self):
         if self.type == "post":
-            return os.path.join(self.site_path, self._path_template.format(year=self.date.year,
-                                                                           month=self.date.month,
-                                                                           day=self.date.day))
+            return os.path.join(self.site_path,
+                                self._path_template.format(year=self.date.year,
+                                                           month=self.date.month,
+                                                           day=self.date.day))
         else:
             return self.site_path
 
@@ -102,12 +104,14 @@ class Page:
         matched = md_pattern.match(self._file)
         meta = matched.group("meta")
         self.data = yaml.load(meta)
-        self.data["date"] = self.formatted_date if self.formatted_date else None
-        self.data["content"] = md.convert(self._file[matched.end():])
-        self.data["path"] = self.path
-        self.data["alias"] = self.alias
-        self.data["template"] += ".html"
-        self.data["url"] = os.path.join(self.config.get("url"), self.url_path, self.alias)
+        self.data.update({
+            "date": self.formatted_date if self.formatted_date else None,
+            "content": md.convert(self._file[matched.end():]),
+            "path": self.path,
+            "alias": self.alias,
+            "template": self.data["template"] + ".html",
+            "url": os.path.join(self.config.get("url"), self.url_path, self.alias)
+        })
 
 
 class Episode:
@@ -137,8 +141,6 @@ class Episode:
         config_path = os.path.join(self.project_path, "config.yaml")
         stream = open(config_path, "r")
         self.config = yaml.load(stream)
-        # print("="*10)
-        # print(self.config)
 
     def _get_template_by_name(self, template_name):
         return self.env.get_template("{}.html".format(template_name))
@@ -156,7 +158,9 @@ class Episode:
         for dirpath, dirnames, filenames in os.walk(self.project_path):
             for name in filenames:
                 if os.path.splitext(name)[-1] in self.config.get("file_ext"):
-                    file_obj = Page(os.path.join(dirpath, name), config=self.config, path_templete=self.config.get("path_template"))
+                    file_obj = Page(os.path.join(dirpath, name),
+                                    config=self.config,
+                                    path_templete=self.config.get("path_template"))
                     if file_obj.type == "post":
                         self.posts.append(file_obj.data)
                     else:
@@ -172,27 +176,28 @@ class Episode:
         print(target_file)
         if not os.path.exists(page.get("path")):
             os.makedirs(page.get("path"))
-        f = open(target_file, 'w')
-        f.write(self.env.get_template(page.get("template")).render(page))
-        f.close()
+        with open(target_file, 'w') as f:
+            f.write(self.env.get_template(page.get("template")).render(page))
 
     def _render_pagination(self):
         pagination = self.config.get("paginate")
         pagination_folder = os.path.join(self._get_path(self.config.get("destination")), "page")
         print(pagination_folder)
         post_count = len(self.posts)
-        total_pages = post_count//pagination
+        total_pages = math.ceil(post_count/pagination)
         if post_count > pagination:
             os.makedirs(pagination_folder)
         for index, posts in enumerate(chunks(self.posts, pagination)):
-            if index == 0:
-                f = open(os.path.join(self._get_path(self.config.get("destination")), "index.html"), 'w')
-            else:
-                f = open(os.path.join(pagination_folder, "{}.html".format(str(index))), 'w')
-            f.write(self.env.get_template("index.html").render({"pagination_posts": posts,
-                                                                "current_page": index,
-                                                                "count": total_pages}))
-            f.close()
+            try:
+                if index == 0:
+                    f = open(os.path.join(self._get_path(self.config.get("destination")), "index.html"), 'w')
+                else:
+                    f = open(os.path.join(pagination_folder, "{}.html".format(str(index))), 'w')
+                f.write(self.env.get_template("index.html").render({"pagination_posts": posts,
+                                                                    "current_page": index,
+                                                                    "total_pages": total_pages}))
+            finally:
+                f.close()
 
     def _render(self):
         for page in self.pages:
@@ -206,14 +211,37 @@ class Episode:
             shutil.rmtree(project_name)
         shutil.copytree(SEED_PATH, project_name)
 
+    def _git_clone(url):
+        sh.git.clone(url)
+        sh.git.checkout("master")
+
+    def _git_add_and_commit(self, message="Update posts"):
+        sh.git.add(".")
+        sh.git.commit("-m", message)
+
+    def _checkout_or_create(branch="source"):
+        try:
+            sh.git.checkout(branch)
+        except sh.ErrorReturnCode_1 as e:
+            sh.git.checkout("-b", branch)
+
+    def _git_branch(self):
+        os.chdir('windfarer.github.io')
+        # print(sh.git.checkout("-b", "gh-pages"))
+        try:
+            sh.git.checkout("gh-pages")
+        except sh.ErrorReturnCode_1 as e:
+            sh.git.checkout("-b", "gh-pages")
+
+    def _git_push(self, branch):
+        sh.git.push("origin", branch)
+
     def build(self):
         start = time.clock()
         # shutil.rmtree(self._get_path(self.config.get("destination")))
         self._copy_static_files()
         self._walk_files()
         self._render()
-
-
 
         end = time.clock()
         print("run time: {time}s".format(time=end-start))
@@ -243,28 +271,6 @@ class Episode:
 
     def deploy(self):
         self.build()
-        self._git_push()
-
-    def _git_clone(url):
-        sh.git.clone(url)
-        sh.git.checkout("master")
-
-    def _checkout_or_create(branch="master"):
-        try:
-            sh.git.checkout(branch)
-        except sh.ErrorReturnCode_1 as e:
-            sh.git.checkout("-b", branch)
-
-    def _git_branch(self):
-        os.chdir('windfarer.github.io')
-        # print(sh.git.checkout("-b", "gh-pages"))
-        try:
-            sh.git.checkout("gh-pages")
-        except sh.ErrorReturnCode_1 as e:
-            sh.git.checkout("-b", "gh-pages")
-
-    def _git_push(self):
-        sh.git.push("origin", "gh-pages")
 
 
 class FileChangeEventHandler(FileSystemEventHandler):
