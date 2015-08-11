@@ -36,7 +36,23 @@ def chunks(l, n):
 
 
 class Page:
-    def __init__(self, file, config, path_templete="", site_path="site", date_template="%Y/%m/%d"):
+    """
+    Generate a Page(or post) object, contains meta info and content.
+
+    if obj.type is 'post', an example of page obj's useful data can be shown as follows:
+
+    obj.data = {
+        "title": "i'm a title",
+        "date": "2015-01-01",
+        "content": "This is the content",
+        "path": "/2015/01/01/test-post.html",
+        "alias": "test-post",
+        "template": "post.html",
+        "url": "http://example.com/2015/01/01/test-post.html"
+    }
+
+    """
+    def __init__(self, file, config, path_templete="", site_path="post", date_template="%Y/%m/%d"):
 
         self._path_template = path_templete
         self._date_template = date_template
@@ -54,8 +70,8 @@ class Page:
     def path(self):
         if self.type == "post":
             return os.path.join(self.site_path, self._path_template.format(year=self.date.year,
-                                                           month=self.date.month,
-                                                           day=self.date.day))
+                                                                           month=self.date.month,
+                                                                           day=self.date.day))
         else:
             return self.site_path
 
@@ -67,6 +83,7 @@ class Page:
                                                            day=self.date.day))
         else:
             return ""
+
     def _parse_file_name(self):
         matched = re.match(post_name_pattern, self._filename)
         if matched:
@@ -94,6 +111,16 @@ class Page:
 
 
 class Episode:
+    """
+    The main obj of episode static site generator.
+    the build workflow:
+    1. cleaning the working folders.
+    2. copy static files into site folders.
+    3. walking markdown files.
+    4. parsing them as Page objs and storing them in memory.
+    5. rendering pages into html templates, generating html files.
+    6. creating path out of the site's structure, putting html files into the correct destinations.
+    """
     def __init__(self):
         self.posts = []
         self.pages = []
@@ -228,7 +255,7 @@ class Episode:
         except sh.ErrorReturnCode_1 as e:
             sh.git.checkout("-b", branch)
 
-    def _git_branch():
+    def _git_branch(self):
         os.chdir('windfarer.github.io')
         # print(sh.git.checkout("-b", "gh-pages"))
         try:
@@ -236,7 +263,7 @@ class Episode:
         except sh.ErrorReturnCode_1 as e:
             sh.git.checkout("-b", "gh-pages")
 
-    def _git_push():
+    def _git_push(self):
         sh.git.push("origin", "gh-pages")
 
 
