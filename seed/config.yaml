@@ -12,6 +12,7 @@ email: your-email@domain.com
 url: http://yourdomain.com
 paginate: 5
 time_zone: Asia/Shanghai
+deploy_repo: git@github.com:Windfarer/windfarer.github.io.git
 
 # Serving
 host: 127.0.0.1

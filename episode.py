@@ -211,31 +211,6 @@ class Episode:
             shutil.rmtree(project_name)
         shutil.copytree(SEED_PATH, project_name)
 
-    def _git_clone(url):
-        sh.git.clone(url)
-        sh.git.checkout("master")
-
-    def _git_add_and_commit(self, message="Update posts"):
-        sh.git.add(".")
-        sh.git.commit("-m", message)
-
-    def _checkout_or_create(branch="source"):
-        try:
-            sh.git.checkout(branch)
-        except sh.ErrorReturnCode_1 as e:
-            sh.git.checkout("-b", branch)
-
-    def _git_branch(self):
-        os.chdir('windfarer.github.io')
-        # print(sh.git.checkout("-b", "gh-pages"))
-        try:
-            sh.git.checkout("gh-pages")
-        except sh.ErrorReturnCode_1 as e:
-            sh.git.checkout("-b", "gh-pages")
-
-    def _git_push(self, branch):
-        sh.git.push("origin", branch)
-
     def build(self):
         start = time.clock()
         # shutil.rmtree(self._get_path(self.config.get("destination")))
@@ -271,6 +246,37 @@ class Episode:
 
     def deploy(self):
         self.build()
+
+
+class GitRepo:
+    def __init__(self, repo_address):
+        self.repo_address = repo_address
+        self.git = sh.git
+
+    def _clone(self):
+        sh.git.clone(self.repo_address)
+
+    def _add_and_commit(self, message="Update posts"):
+        self.git.add(".")
+        self.git.commit("-m", message)
+
+    def _checkout_or_create(self, branch="source"):
+        try:
+            self.git.checkout(branch)
+        except sh.ErrorReturnCode_1 as e:
+            self.git.checkout("-b", branch)
+
+    def _branch(self, branch):
+        try:
+            self.git.checkout(branch)
+        except sh.ErrorReturnCode_1 as e:
+            self.git.checkout("-b", branch)
+
+    def _push(self, branch):
+        self.git.push("origin", branch)
+
+    def _pull(self, branch):
+        self.git.pull("origin", branch)
 
 
 class FileChangeEventHandler(FileSystemEventHandler):
