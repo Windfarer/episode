@@ -13,6 +13,7 @@ import shutil
 import yaml
 import time
 import math
+import uuid
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import date
 from jinja2 import Environment, FileSystemLoader
@@ -22,6 +23,8 @@ from watchdog.events import FileSystemEventHandler
 from docopt import docopt
 
 SEED_PATH = os.path.abspath("seed")
+TMP_ROOT_PATH = "/tmp"
+TMP_FOLDER_PREFIX = "episode"
 
 md_pattern = re.compile(r"(\n)*\-+(\n)*(?P<meta>(.*?\n)*?)\-+\n*?")
 post_name_pattern = re.compile(r"(?P<year>(\d{4}))\-(?P<month>(\d{1,2}))\-(?P<day>(\d{1,2}))\-(?P<alias>(.+))")
@@ -114,6 +117,40 @@ class Page:
         })
 
 
+class GitRepo:
+    def __init__(self, repo_address=None):
+        self.repo_address = repo_address
+        self.git = sh.git
+
+    def clone(self):
+        sh.git.clone(self.repo_address)
+
+    def add_and_commit(self, message="Update posts"):
+        self.git.add(".")
+        self.git.commit("-m", message)
+
+    def checkout_or_create(self, branch="source"):
+        try:
+            self.git.checkout(branch)
+        except sh.ErrorReturnCode_1 as e:
+            self.git.checkout("-b", branch)
+
+    def branch(self, branch):
+        try:
+            self.git.checkout(branch)
+        except sh.ErrorReturnCode_1 as e:
+            self.git.checkout("-b", branch)
+
+    def push(self, branch):
+        self.git.push("origin", branch)
+
+    def pull(self, branch):
+        self.git.pull("origin", branch)
+
+    def init(self):
+        self.git.init()
+
+
 class Episode:
     """
     The main obj of episode static site generator.
@@ -133,6 +170,8 @@ class Episode:
         self._get_config()
         self.env = Environment(loader=FileSystemLoader(self._get_path(self.config.get("template_folder"))))
         self.env.globals["site"] = self.config
+
+        self.git_repo = GitRepo(self.config.get("deploy_repo"))
 
     def _get_path(self, folder):
         return os.path.join(self.project_path, folder)
@@ -206,20 +245,40 @@ class Episode:
             self._render_html_file(post)
         self._render_pagination()
 
-    def generate_project(self, project_name):
+    def init(self, project_name):
         if os.path.exists(project_name):
-            shutil.rmtree(project_name)
+            return print("folder already exists.")
         shutil.copytree(SEED_PATH, project_name)
+        os.chdir(project_name)
+        self.git_repo.init()
+        self.git_repo.checkout_or_create()
+        print("Done! Enjoy it!")
 
     def build(self):
         start = time.clock()
-        # shutil.rmtree(self._get_path(self.config.get("destination")))
+        tmp_build_folder = "_".join([TMP_FOLDER_PREFIX, uuid.uuid4()])
+        tmp_build_path = os.path.join(TMP_ROOT_PATH, tmp_build_folder)
+        os.makedirs(tmp_build_path)
         self._copy_static_files()
         self._walk_files()
         self._render()
+        print("Done!", "Result path:")
+        print(tmp_build_path)
 
         end = time.clock()
         print("run time: {time}s".format(time=end-start))
+
+    def deploy(self):
+        if not self.config.get("deploy_repo"):
+            return print("not specify deploy repo.")
+
+        self.git_repo.add_and_commit()
+        self.build()
+        self.git_repo.checkout_or_create("master")
+        self.git_repo.pull("master")
+        # remove files
+        shutil.copytree(TMP_ROOT_PATH, '.')
+        self.git_repo.push("master")
 
     def server(self, address="0.0.0.0", port=8000, server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
         self.build()
@@ -244,39 +303,7 @@ class Episode:
         except KeyboardInterrupt:
             observer.stop()
 
-    def deploy(self):
-        self.build()
 
-
-class GitRepo:
-    def __init__(self, repo_address):
-        self.repo_address = repo_address
-        self.git = sh.git
-
-    def _clone(self):
-        sh.git.clone(self.repo_address)
-
-    def _add_and_commit(self, message="Update posts"):
-        self.git.add(".")
-        self.git.commit("-m", message)
-
-    def _checkout_or_create(self, branch="source"):
-        try:
-            self.git.checkout(branch)
-        except sh.ErrorReturnCode_1 as e:
-            self.git.checkout("-b", branch)
-
-    def _branch(self, branch):
-        try:
-            self.git.checkout(branch)
-        except sh.ErrorReturnCode_1 as e:
-            self.git.checkout("-b", branch)
-
-    def _push(self, branch):
-        self.git.push("origin", branch)
-
-    def _pull(self, branch):
-        self.git.pull("origin", branch)
 
 
 class FileChangeEventHandler(FileSystemEventHandler):
@@ -317,7 +344,7 @@ def start_build():
 
 def start_new(project_name):
     print("create a new project")
-    Episode().generate_project(project_name)
+    Episode().init(project_name)
 
 
 def start_deploy():
