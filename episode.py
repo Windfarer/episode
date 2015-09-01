@@ -9,11 +9,12 @@
 import os
 import re
 import sh
-import shutil
+import sys
 import yaml
 import time
 import math
 import uuid
+import shutil
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import date
 from jinja2 import Environment, FileSystemLoader
@@ -22,7 +23,8 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from docopt import docopt
 
-SEED_PATH = os.path.abspath("seed")
+EPISODE_PATH = os.path.split(os.path.abspath(sys.argv[0]))[0]
+SEED_PATH = os.path.join(EPISODE_PATH, 'seed')
 TMP_ROOT_PATH = "/tmp"
 TMP_FOLDER_PREFIX = "episode"
 
@@ -151,6 +153,20 @@ class GitRepo:
         self.git.init()
 
 
+class Initializer:
+    def __init__(self, project_name):
+        if os.path.exists(project_name):
+            print("folder already exists.")
+            return
+        shutil.copytree(SEED_PATH, project_name)
+        os.chdir(project_name)
+
+        self.git_repo = GitRepo()
+        self.git_repo.init()
+        self.git_repo.checkout_or_create()
+        print("Done! Enjoy it!")
+
+
 class Episode:
     """
     The main obj of episode static site generator.
@@ -245,15 +261,6 @@ class Episode:
             self._render_html_file(post)
         self._render_pagination()
 
-    def init(self, project_name):
-        if os.path.exists(project_name):
-            return print("folder already exists.")
-        shutil.copytree(SEED_PATH, project_name)
-        os.chdir(project_name)
-        self.git_repo.init()
-        self.git_repo.checkout_or_create()
-        print("Done! Enjoy it!")
-
     def build(self):
         start = time.clock()
         tmp_build_folder = "_".join([TMP_FOLDER_PREFIX, uuid.uuid4()])
@@ -344,7 +351,7 @@ def start_build():
 
 def start_new(project_name):
     print("create a new project")
-    Episode().init(project_name)
+    Initializer(project_name)
 
 
 def start_deploy():

@@ -1,8 +1,4 @@
 # Path settings
-root: .
-destination: ./site
-plugins: ./plugins
-templates: ./templates
 path_template: "{year}/{month}/{day}"
 
 #site settings
