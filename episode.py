@@ -24,11 +24,21 @@ from watchdog.events import FileSystemEventHandler
 from docopt import docopt
 
 EPISODE_PATH = os.path.split(os.path.abspath(sys.argv[0]))[0]
-SEED_PATH = os.path.join(EPISODE_PATH, 'seed')
+SEED_PATH = os.path.join(EPISODE_PATH, "seed")
 TMP_ROOT_PATH = "/tmp"
 TMP_FOLDER_PREFIX = "episode"
+PAGINATION_PATH = "p"
+TEMPLATE_PATH = "templates"
+PAGE_FILE_EXT = [".md", ".markdown"]
 
-md_pattern = re.compile(r"(\n)*\-+(\n)*(?P<meta>(.*?\n)*?)\-+\n*?")
+
+CONTENT_CONF = {
+    # content_type(path): attribute
+    "posts": "posts",
+    "pages": "pages"
+}
+
+md_pattern = re.compile(r"(\n)*(?P<meta>(.*?\n)*?)\-+\n*?")
 post_name_pattern = re.compile(r"(?P<year>(\d{4}))\-(?P<month>(\d{1,2}))\-(?P<day>(\d{1,2}))\-(?P<alias>(.+))")
 
 md = Markdown()
@@ -58,11 +68,9 @@ class Page:
     }
 
     """
-    def __init__(self, file, config, path_templete="", site_path="site", date_template="%Y/%m/%d"):
-
+    def __init__(self, file, config, path_templete="", date_template="%Y/%m/%d"):
         self._path_template = path_templete
         self._date_template = date_template
-        self.site_path = site_path
         self.config = config
         self._filename, self._filename_extension = os.path.splitext(os.path.basename(file))
 
@@ -75,24 +83,12 @@ class Page:
     @property
     def path(self):
         if self.type == "post":
-            return os.path.join(self.site_path,
-                                self._path_template.format(year=self.date.year,
-                                                           month=self.date.month,
-                                                           day=self.date.day))
-        else:
-            return self.site_path
-
-    @property
-    def url_path(self):
-        if self.type == "post":
-            return os.path.join(self._path_template.format(year=self.date.year,
-                                                           month=self.date.month,
-                                                           day=self.date.day))
+            return self.formatted_date
         else:
             return ""
 
     def _parse_file_name(self):
-        matched = re.match(post_name_pattern, self._filename)
+        matched = post_name_pattern.match(self._filename)
         if matched:
             year = int(matched.group("year"))
             month = int(matched.group("month"))
@@ -115,7 +111,7 @@ class Page:
             "path": self.path,
             "alias": self.alias,
             "template": self.data["template"] + ".html",
-            "url": os.path.join(self.config.get("url"), self.url_path, self.alias)
+            "url": os.path.join(self.config.get("url"), self.path, self.alias)
         })
 
 
@@ -154,6 +150,9 @@ class GitRepo:
 
 
 class Initializer:
+    """
+    To initialize a site project.
+    """
     def __init__(self, project_name):
         if os.path.exists(project_name):
             print("folder already exists.")
@@ -181,10 +180,12 @@ class Episode:
     def __init__(self):
         self.posts = []
         self.pages = []
-
+        # tmp_build_folder = "_".join([TMP_FOLDER_PREFIX, str(uuid.uuid1())])
+        tmp_build_folder = "_".join([TMP_FOLDER_PREFIX, 'test'])
+        self.destination = os.path.join(TMP_ROOT_PATH, tmp_build_folder)
         self.project_path = os.getcwd()
         self._get_config()
-        self.env = Environment(loader=FileSystemLoader(self._get_path(self.config.get("template_folder"))))
+        self.env = Environment(loader=FileSystemLoader(self._get_path(TEMPLATE_PATH)))
         self.env.globals["site"] = self.config
 
         self.git_repo = GitRepo(self.config.get("deploy_repo"))
@@ -200,26 +201,23 @@ class Episode:
     def _get_template_by_name(self, template_name):
         return self.env.get_template("{}.html".format(template_name))
 
-    def _copy_static_files(self):
+    def _copy_static_files(self):  # will be removed
         for d in self.config.get("static_folders"):
             from_dir = os.path.join(self.project_path, d)
-            to_dir = os.path.join(self._get_path(self.config.get("destination")), d)
+            to_dir = os.path.join('xxx', d)
             if os.path.exists(from_dir):
                 if os.path.exists(to_dir):
                     shutil.rmtree(to_dir)
                 shutil.copytree(from_dir, to_dir)
 
-    def _walk_files(self):
-        for dirpath, dirnames, filenames in os.walk(self.project_path):
-            for name in filenames:
-                if os.path.splitext(name)[-1] in self.config.get("file_ext"):
-                    file_obj = Page(os.path.join(dirpath, name),
-                                    config=self.config,
-                                    path_templete=self.config.get("path_template"))
-                    if file_obj.type == "post":
-                        self.posts.append(file_obj.data)
-                    else:
-                        self.pages.append(file_obj.data)
+    def _walk_files(self, content_type):
+        for f in os.listdir(content_type):
+            if os.path.splitext(f)[-1] in PAGE_FILE_EXT:
+                file_obj = Page(os.path.join(content_type, f),
+                                config=self.config)
+                getattr(self, CONTENT_CONF[content_type]).append(file_obj.data)
+
+    def _update_data(self):
         self.posts.sort(key=lambda x: x["date"], reverse=True)
         self.env.globals.update({
             "posts": self.posts,
@@ -227,17 +225,17 @@ class Episode:
         })
 
     def _render_html_file(self, page):
-        target_file = os.path.join(page.get("path"), page.get("alias")) + ".html"
-        print(target_file)
-        if not os.path.exists(page.get("path")):
-            os.makedirs(page.get("path"))
+        target_path = os.path.join(self.destination, page.get("path"))
+        target_file = os.path.join(target_path, page.get("alias")) + ".html"
+        print(target_path)
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
         with open(target_file, 'w') as f:
             f.write(self.env.get_template(page.get("template")).render(page))
 
     def _render_pagination(self):
         pagination = self.config.get("paginate")
-        pagination_folder = os.path.join(self._get_path(self.config.get("destination")), "page")
-        print(pagination_folder)
+        pagination_folder = os.path.join(self.destination, PAGINATION_PATH)
         post_count = len(self.posts)
         total_pages = math.ceil(post_count/pagination)
         if post_count > pagination:
@@ -245,32 +243,31 @@ class Episode:
         for index, posts in enumerate(chunks(self.posts, pagination)):
             try:
                 if index == 0:
-                    f = open(os.path.join(self._get_path(self.config.get("destination")), "index.html"), 'w')
+                    f = open(os.path.join(self.destination, "index.html"), 'w')
                 else:
                     f = open(os.path.join(pagination_folder, "{}.html".format(str(index))), 'w')
-                f.write(self.env.get_template("index.html").render({"pagination_posts": posts,
-                                                                    "current_page": index,
-                                                                    "total_pages": total_pages}))
+                f.write(self.env.get_template("index.html").render({
+                    "pagination_posts": posts,
+                    "current_page": index,
+                    "total_pages": total_pages
+                }))
             finally:
                 f.close()
 
     def _render(self):
-        for page in self.pages:
-            self._render_html_file(page)
-        for post in self.posts:
-            self._render_html_file(post)
+        for content_type in CONTENT_CONF.keys():
+            for item in getattr(self, content_type):
+                self._render_html_file(item)
         self._render_pagination()
 
     def build(self):
         start = time.clock()
-        tmp_build_folder = "_".join([TMP_FOLDER_PREFIX, uuid.uuid4()])
-        tmp_build_path = os.path.join(TMP_ROOT_PATH, tmp_build_folder)
-        os.makedirs(tmp_build_path)
-        self._copy_static_files()
-        self._walk_files()
+        os.makedirs(self.destination)
+        for path in CONTENT_CONF.keys():
+            self._walk_files(path)
         self._render()
         print("Done!", "Result path:")
-        print(tmp_build_path)
+        print(self.destination)
 
         end = time.clock()
         print("run time: {time}s".format(time=end-start))
@@ -309,8 +306,6 @@ class Episode:
                 time.sleep(1)
         except KeyboardInterrupt:
             observer.stop()
-
-
 
 
 class FileChangeEventHandler(FileSystemEventHandler):
