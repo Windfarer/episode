@@ -1,6 +1,6 @@
 """Usage:
     episode new <project_name>
-    episode server <host> <port>
+    episode server <port>
     episode build
     episode watch
     episode -h | --help | --version
@@ -15,7 +15,7 @@ import time
 import math
 import uuid
 import shutil
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import http.server
 from datetime import date
 from jinja2 import Environment, FileSystemLoader
 from markdown import Markdown
@@ -284,12 +284,13 @@ class Episode:
         shutil.copytree(TMP_ROOT_PATH, '.')
         self.git_repo.push("master")
 
-    def server(self, address="0.0.0.0", port=8000, server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
+    def server(self, port=8000):
         self.build()
         print("start server")
-        server_address = (address, port)
-        httpd = server_class(server_address, handler_class)
-        print("Serving at http://{address}:{port}".format(address=address, port=port))
+        os.chdir(self.destination)
+        Handler = http.server.SimpleHTTPRequestHandler
+        httpd = http.server.HTTPServer(("", port), Handler)
+        print("Serving at http://127.0.0.1:{port}".format(port=port))
         httpd.serve_forever()
 
     def watch(self):
