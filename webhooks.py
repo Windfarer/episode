@@ -4,20 +4,31 @@ import json
 
 class WebHookHandler(BaseHTTPRequestHandler):
     def do_POST(self):
+        event_type = self.headers.get('X-Github-Event')
+        if event_type != 'push':
+            return
+
         length = int(self.headers.get('Content-Length'))
-        print('length', length)
-        body = self.rfile.read(length).decode('utf-8')
-        print(json.loads(body))
+        http_body = self.rfile.read(length).decode('utf-8')
+        data = json.loads(http_body)
+        ref = data.get('ref')
+
+        if ref != 'refs/heads/source':
+            return
+
+        # todo: pull repo & branch to source & build & push to master
+        repo_addr = data.get("repository")['ssh_url']
+        print('repo', repo_addr)
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-        self.wfile.write(bytes("Hello World", "utf-8"))
+        # self.wfile.write(bytes("Hello World", "utf-8"))
         return
 
 
 if __name__ == "__main__":
     port = 8000
     Handler = WebHookHandler
-    httpd = HTTPServer(("", port), Handler)
+    httpd = HTTPServer(("0.0.0.0", port), Handler)
     print("Serving at http://127.0.0.1:{port}".format(port=port))
     httpd.serve_forever()
