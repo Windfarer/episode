@@ -2,6 +2,7 @@
     episode new <project_name>
     episode server <port>
     episode build
+    episode deploy
     episode watch
     episode -h | --help | --version
 """
@@ -139,11 +140,17 @@ class GitRepo:
         except sh.ErrorReturnCode_1 as e:
             self.git.checkout("-b", branch)
 
-    def push(self, branch):
-        self.git.push("origin", branch)
+    def push(self, branch, force=False):
+        if force:
+            self.git.push("origin", branch, '-f')
+        else:
+            self.git.push("origin", branch)
 
     def pull(self, branch):
         self.git.pull("origin", branch)
+
+    def add_remote(self, address):
+        self.git.remote.add.origin(address)
 
     def init(self):
         self.git.init()
@@ -260,6 +267,11 @@ class Episode:
                 self._render_html_file(item)
         self._render_pagination()
 
+    def _clean_folder(self):
+        for path in os.listdir('.'):
+            if not path.startswith('.'):
+                shutil.rmtree(path)
+
     def build(self):
         start = time.clock()
         os.makedirs(self.destination)
@@ -280,8 +292,11 @@ class Episode:
         self.build()
         self.git_repo.checkout_or_create("master")
         self.git_repo.pull("master")
-        # remove files
+
+        self._clean_folder()
+
         shutil.copytree(TMP_ROOT_PATH, '.')
+
         self.git_repo.push("master")
 
     def server(self, port=8000):
