@@ -149,6 +149,9 @@ class GitRepo:
     def pull(self, branch):
         self.git.pull("origin", branch)
 
+    def fetch(self):
+        self.git.fetch()
+
     def add_remote(self, address):
         self.git.remote.add.origin(address)
 
@@ -187,8 +190,7 @@ class Episode:
     def __init__(self):
         self.posts = []
         self.pages = []
-        # tmp_build_folder = "_".join([TMP_FOLDER_PREFIX, str(uuid.uuid1())])
-        tmp_build_folder = "_".join([TMP_FOLDER_PREFIX, 'test'])
+        tmp_build_folder = "_".join([TMP_FOLDER_PREFIX, str(uuid.uuid1())])
         self.destination = os.path.join(TMP_ROOT_PATH, tmp_build_folder)
         self.project_path = os.getcwd()
         self._get_config()
@@ -196,6 +198,9 @@ class Episode:
         self.env.globals["site"] = self.config
 
         self.git_repo = GitRepo(self.config.get("deploy_repo"))
+
+    # def __del__(self):
+    #     shutil.rmtree(self.destination)
 
     def _get_path(self, folder):
         return os.path.join(self.project_path, folder)
@@ -270,7 +275,10 @@ class Episode:
     def _clean_folder(self):
         for path in os.listdir('.'):
             if not path.startswith('.'):
-                shutil.rmtree(path)
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
 
     def build(self):
         start = time.clock()
@@ -288,14 +296,13 @@ class Episode:
         if not self.config.get("deploy_repo"):
             return print("not specify deploy repo.")
 
-        self.git_repo.add_and_commit()
+        # self.git_repo.add_and_commit()
         self.build()
         self.git_repo.checkout_or_create("master")
         self.git_repo.pull("master")
-
         self._clean_folder()
 
-        shutil.copytree(TMP_ROOT_PATH, '.')
+        shutil.copytree(TMP_ROOT_PATH, '')
 
         self.git_repo.push("master")
 
@@ -313,9 +320,7 @@ class Episode:
         event_handler = FileChangeEventHandler(self)
         observer = Observer()
         observer.schedule(event_handler, self.config.get("root"), recursive=False)
-        # for item in os.listdir("."):
-        #     if os.path.isdir(item) and item != "site":
-        #         observer.schedule(event_handler, item, recursive=False)
+
         observer.start()
         try:
             while True:
@@ -328,9 +333,6 @@ class FileChangeEventHandler(FileSystemEventHandler):
     def __init__(self, episode):
         self.episode = episode
 
-    # def on_moved(self, event):
-    #     self.episode.build()
-    #     print("==move====src"+event.src_path)
 
     def on_created(self, event):
         self.episode.build()
