@@ -9,13 +9,13 @@
 
 import os
 import re
-import sh
 import sys
 import yaml
 import time
 import math
 import uuid
 import shutil
+import subprocess
 import http.server
 from datetime import date
 from jinja2 import Environment, FileSystemLoader
@@ -119,44 +119,44 @@ class Page:
 class GitRepo:
     def __init__(self, repo_address=None):
         self.repo_address = repo_address
-        self.git = sh.git
 
     def clone(self):
-        sh.git.clone(self.repo_address)
+        subprocess.call(["git", "clone", self.repo_address])
 
     def add_and_commit(self, message="Update posts"):
-        self.git.add(".")
-        self.git.commit("-m", message)
+        subprocess.call(["git", "add", "."])
+        subprocess.call(["git", "commit", "-m", message])  # todo deal with exception
 
     def checkout_or_create(self, branch="source"):
         try:
-            self.git.checkout(branch)
-        except sh.ErrorReturnCode_1 as e:
-            self.git.checkout("-b", branch)
+            subprocess.call(["git", "checkout", branch])
+        except sh.ErrorReturnCode_1 as e:  # todo deal with exception
+            subprocess.call(["git", "checkout", "-b", branch])
 
     def branch(self, branch):
         try:
+            subprocess.call(["git", "checkout", branch])
             self.git.checkout(branch)
-        except sh.ErrorReturnCode_1 as e:
-            self.git.checkout("-b", branch)
+        except sh.ErrorReturnCode_1 as e: # todo deal with exception
+            subprocess.call(["git", "checkout", "-b", branch])
 
     def push(self, branch, force=False):
         if force:
-            self.git.push("origin", branch, '-f')
+            subprocess.call(["git", "push", "origin", branch, "-f"])
         else:
-            self.git.push("origin", branch)
+            subprocess.call(["git", "push", "origin", branch])
 
     def pull(self, branch):
-        self.git.pull("origin", branch)
+        subprocess.call(["git", "pull", "origin", branch])
 
     def fetch(self):
-        self.git.fetch()
+        subprocess.call(["git", "fetch"])
 
     def add_remote(self, address):
-        self.git.remote.add.origin(address)
+        subprocess.call(["git", "remote", "add", "origin", address])
 
     def init(self):
-        self.git.init()
+        subprocess.call(["git", "init"])
 
 
 class Initializer:
@@ -280,11 +280,15 @@ class Episode:
                 else:
                     os.remove(path)
 
+    def _copy_files(self, from_path, to_path):
+        subprocess.call(["cp", "-r", from_path, to_path])
+
     def build(self):
         start = time.clock()
         os.makedirs(self.destination)
         for path in CONTENT_CONF.keys():
-            self._walk_files(path)
+            if os.path.isdir(path):
+                self._walk_files(path)
         self._render()
         print("Done!", "Result path:")
         print(self.destination)
@@ -295,14 +299,14 @@ class Episode:
     def deploy(self):
         if not self.config.get("deploy_repo"):
             return print("not specify deploy repo.")
-
-        # self.git_repo.add_and_commit()
+        #
+        self.git_repo.add_and_commit()
         self.build()
         self.git_repo.checkout_or_create("master")
         self.git_repo.pull("master")
         self._clean_folder()
 
-        shutil.copytree(TMP_ROOT_PATH, '')
+        self._copy_files(os.path.join(self.destination, "*"), './')  # todo: file copy
 
         self.git_repo.push("master")
 
