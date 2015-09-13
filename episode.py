@@ -111,7 +111,7 @@ class Page:
             "content": md.convert(self._file[matched.end():]),
             "path": self.path,
             "alias": self.alias,
-            "template": self.data["template"] + ".html",
+            "template": ".".join([self.data["template"], "html"]) if self.data("template") else "default.html",
             "url": os.path.join(self.config.get("url"), self.path, self.alias)
         })
 
@@ -121,42 +121,44 @@ class GitRepo:
         self.repo_address = repo_address
 
     def clone(self):
-        subprocess.call(["git", "clone", self.repo_address])
+        subprocess.check_call(["git", "clone", self.repo_address])
 
     def add_and_commit(self, message="Update posts"):
-        subprocess.call(["git", "add", "."])
-        subprocess.call(["git", "commit", "-m", message])  # todo deal with exception
+        subprocess.check_call(["git", "add", "."])
+        try:
+            subprocess.check_call(["git", "commit", "-m", message])
+        except subprocess.CalledProcessError as e:
+            pass
 
     def checkout_or_create(self, branch="source"):
         try:
-            subprocess.call(["git", "checkout", branch])
-        except sh.ErrorReturnCode_1 as e:  # todo deal with exception
-            subprocess.call(["git", "checkout", "-b", branch])
+            subprocess.check_call(["git", "checkout", branch])
+        except subprocess.CalledProcessError as e:
+            subprocess.check_call(["git", "checkout", "-b", branch])
 
     def branch(self, branch):
         try:
-            subprocess.call(["git", "checkout", branch])
-            self.git.checkout(branch)
-        except sh.ErrorReturnCode_1 as e: # todo deal with exception
-            subprocess.call(["git", "checkout", "-b", branch])
+            subprocess.check_call(["git", "checkout", branch])
+        except subprocess.CalledProcessError as e:
+            subprocess.check_call(["git", "checkout", "-b", branch])
 
     def push(self, branch, force=False):
         if force:
-            subprocess.call(["git", "push", "origin", branch, "-f"])
+            subprocess.check_call(["git", "push", "origin", branch, "-f"])
         else:
-            subprocess.call(["git", "push", "origin", branch])
+            subprocess.check_call(["git", "push", "origin", branch])
 
     def pull(self, branch):
-        subprocess.call(["git", "pull", "origin", branch])
+        subprocess.check_call(["git", "pull", "origin", branch])
 
     def fetch(self):
-        subprocess.call(["git", "fetch"])
+        subprocess.check_call(["git", "fetch"])
 
     def add_remote(self, address):
-        subprocess.call(["git", "remote", "add", "origin", address])
+        subprocess.check_call(["git", "remote", "add", "origin", address])
 
     def init(self):
-        subprocess.call(["git", "init"])
+        subprocess.check_call(["git", "init"])
 
 
 class Initializer:
@@ -190,7 +192,7 @@ class Episode:
     def __init__(self):
         self.posts = []
         self.pages = []
-        tmp_build_folder = "_".join([TMP_FOLDER_PREFIX, str(uuid.uuid1())])
+        tmp_build_folder = "_".join([TMP_FOLDER_PREFIX, str(uuid.uuid1())])  # todo: temp folder name needs to be considered
         self.destination = os.path.join(TMP_ROOT_PATH, tmp_build_folder)
         self.project_path = os.getcwd()
         self._get_config()
@@ -281,7 +283,7 @@ class Episode:
                     os.remove(path)
 
     def _copy_files(self, from_path, to_path):
-        subprocess.call(["cp", "-r", from_path, to_path])
+        subprocess.check_call(["cp", "-r", from_path, to_path], shell=True)  # todo: cannot work here
 
     def build(self):
         start = time.clock()
@@ -301,12 +303,13 @@ class Episode:
             return print("not specify deploy repo.")
         #
         self.git_repo.add_and_commit()
+        self.git_repo.push('source')  # todo: if conflict?
         self.build()
         self.git_repo.checkout_or_create("master")
         self.git_repo.pull("master")
         self._clean_folder()
 
-        self._copy_files(os.path.join(self.destination, "*"), './')  # todo: file copy
+        self._copy_files(os.path.join(self.destination, "*"), './')
 
         self.git_repo.push("master")
 
