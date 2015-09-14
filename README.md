@@ -17,6 +17,12 @@ $ episode new <site_name>
 $ episode build
 ```
 
+* 部署
+
+```
+$ episode deploy
+```
+
 * 启动本地服务器
 
 ```
@@ -30,6 +36,6 @@ $ episode watch
 ```
 
 ## TODO
-- [ ] 主题
+- [x] 主题
 - [ ] 安装
 - [ ] Build as service
