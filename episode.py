@@ -111,7 +111,7 @@ class Page:
             "content": md.convert(self._file[matched.end():]),
             "path": self.path,
             "alias": self.alias,
-            "template": ".".join([self.data["template"], "html"]) if self.data("template") else "default.html",
+            "template": ".".join([self.data["template"], "html"]) if self.data["template"] else "default.html",
             "url": os.path.join(self.config.get("url"), self.path, self.alias)
         })
 
@@ -283,18 +283,24 @@ class Episode:
                     os.remove(path)
 
     def _copy_files(self, from_path, to_path):
-        subprocess.check_call(["cp", "-r", from_path, to_path], shell=True)  # todo: cannot work here
+        for item in os.listdir(from_path):
+            src = os.path.join(from_path, item)
+            dst = os.path.join(to_path, item)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst)
+            else:
+                shutil.copy2(src, dst)
 
     def build(self):
         start = time.clock()
         os.makedirs(self.destination)
+        # todo: copy static files
         for path in CONTENT_CONF.keys():
             if os.path.isdir(path):
                 self._walk_files(path)
         self._render()
         print("Done!", "Result path:")
         print(self.destination)
-
         end = time.clock()
         print("run time: {time}s".format(time=end-start))
 
@@ -308,10 +314,10 @@ class Episode:
         self.git_repo.checkout_or_create("master")
         self.git_repo.pull("master")
         self._clean_folder()
-
-        self._copy_files(os.path.join(self.destination, "*"), './')
-
+        self._copy_files(self.destination, os.getcwd())
+        self.git_repo.add_and_commit()
         self.git_repo.push("master")
+        self.git_repo.checkout_or_create("source")
 
     def server(self, port=8000):
         self.build()

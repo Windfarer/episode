@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(
-    name='episode',
+    name='episode',  # todo: setup
     version='0.0.1',
     packages=[''],
     url='https://www.github.com/windfarer/episode',
