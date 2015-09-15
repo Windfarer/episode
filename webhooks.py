@@ -18,21 +18,16 @@ class WebHookHandler(BaseHTTPRequestHandler):
         if ref != 'refs/heads/source':
             return
 
-
         # todo: pull repo & branch to source & build & push to master
         repo_addr = data.get("repository")['ssh_url']
         print('repo', repo_addr)
 
-        repo = GitRepo(repo_address=repo_addr)
+        repo = GitRepo(repo_address=repo_addr, dst='repo')
 
         repo.clone()
         os.chdir('repo')
-        repo.branch('source')
         episode = Episode()
-        episode.build()
-        repo.branch('master')
-        # cp files back
-        repo.add_and_commit()
+        episode.deploy()
 
         self.send_response(200)
         self.send_header("Content-type", "text/html")

@@ -117,11 +117,12 @@ class Page:
 
 
 class GitRepo:
-    def __init__(self, repo_address=None):
+    def __init__(self, repo_address=None, dst=None):
         self.repo_address = repo_address
+        self.dst = dst
 
     def clone(self):
-        subprocess.check_call(["git", "clone", self.repo_address])
+        subprocess.check_call(["git", "clone", self.repo_address, self.dst])
 
     def add_and_commit(self, message="Update posts"):
         subprocess.check_call(["git", "add", "."])
@@ -297,7 +298,7 @@ class Episode:
     def deploy(self):
         if not self.config.get("deploy_repo"):
             return print("not specify deploy repo.")
-
+        self.git_repo.checkout_or_create('source')
         self.git_repo.add_and_commit()
         self.git_repo.push('source')  # todo: if conflict?
         self.build()
