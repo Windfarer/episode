@@ -26,8 +26,7 @@ class WebHookHandler(BaseHTTPRequestHandler):
 
         repo.clone()
         os.chdir('repo')
-        episode = Episode()
-        episode.deploy()
+        Episode().deploy()
 
         self.send_response(200)
         self.send_header("Content-type", "text/html")
