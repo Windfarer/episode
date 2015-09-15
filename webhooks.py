@@ -30,7 +30,7 @@ class WebHookHandler(BaseHTTPRequestHandler):
         os.chdir(WORK_DIR)
         repo.checkout_or_create("source")
         Episode().deploy()
-
+        os.chdir("..")
         shutil.rmtree(WORK_DIR)
 
         self.send_response(200)
