@@ -201,9 +201,6 @@ class Episode:
 
         self.git_repo = GitRepo(self.config.get("deploy_repo"))
 
-    # def __del__(self):
-    #     shutil.rmtree(self.destination)
-
     def _get_path(self, folder):
         return os.path.join(self.project_path, folder)
 
@@ -214,15 +211,6 @@ class Episode:
 
     def _get_template_by_name(self, template_name):
         return self.env.get_template("{}.html".format(template_name))
-
-    def _copy_static_files(self):  # will be removed
-        for d in self.config.get("static_folders"):
-            from_dir = os.path.join(self.project_path, d)
-            to_dir = os.path.join('xxx', d)
-            if os.path.exists(from_dir):
-                if os.path.exists(to_dir):
-                    shutil.rmtree(to_dir)
-                shutil.copytree(from_dir, to_dir)
 
     def _walk_files(self, content_type):
         for f in os.listdir(content_type):
@@ -282,19 +270,21 @@ class Episode:
                 else:
                     os.remove(path)
 
-    def _copy_files(self, from_path, to_path):
+    def _copy_files(self, from_path, to_path, only_dirs=False):
         for item in os.listdir(from_path):
             src = os.path.join(from_path, item)
             dst = os.path.join(to_path, item)
             if os.path.isdir(src):
                 shutil.copytree(src, dst)
-            else:
+            elif not only_dirs:
                 shutil.copy2(src, dst)
 
     def build(self):
         start = time.clock()
         os.makedirs(self.destination)
-        # todo: copy static files
+
+        self._copy_files(TEMPLATE_PATH, self.destination, only_dirs=True)
+
         for path in CONTENT_CONF.keys():
             if os.path.isdir(path):
                 self._walk_files(path)
@@ -307,7 +297,7 @@ class Episode:
     def deploy(self):
         if not self.config.get("deploy_repo"):
             return print("not specify deploy repo.")
-        #
+
         self.git_repo.add_and_commit()
         self.git_repo.push('source')  # todo: if conflict?
         self.build()
@@ -345,7 +335,6 @@ class Episode:
 class FileChangeEventHandler(FileSystemEventHandler):
     def __init__(self, episode):
         self.episode = episode
-
 
     def on_created(self, event):
         self.episode.build()
