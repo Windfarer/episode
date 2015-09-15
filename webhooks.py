@@ -1,8 +1,10 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import os
+import shutil
 from episode import GitRepo, Episode
 
+WORK_DIR = "repo"
 
 class WebHookHandler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -22,11 +24,14 @@ class WebHookHandler(BaseHTTPRequestHandler):
         repo_addr = data.get("repository")['ssh_url']
         print('repo', repo_addr)
 
-        repo = GitRepo(repo_address=repo_addr, dst='repo')
+        repo = GitRepo(repo_address=repo_addr, dst=WORK_DIR)
 
         repo.clone()
-        os.chdir('repo')
+        os.chdir(WORK_DIR)
+        repo.checkout_or_create("source")
         Episode().deploy()
+
+        shutil.rmtree(WORK_DIR)
 
         self.send_response(200)
         self.send_header("Content-type", "text/html")
