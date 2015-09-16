@@ -64,7 +64,7 @@ class Page:
         "content": "This is the content",
         "path": "/2015/01/01/test-post.html",
         "alias": "test-post",
-        "template": "post.html",
+        "template": "post",
         "url": "http://example.com/2015/01/01/test-post.html"
     }
 
@@ -241,6 +241,7 @@ class Episode:
         pagination_folder = os.path.join(self.destination, PAGINATION_PATH)
         post_count = len(self.posts)
         total_pages = math.ceil(post_count/pagination)
+        previous_page = next_page = None
         if post_count > pagination:
             os.makedirs(pagination_folder)
         for index, posts in enumerate(chunks(self.posts, pagination)):
@@ -249,10 +250,18 @@ class Episode:
                     f = open(os.path.join(self.destination, "index.html"), 'w')
                 else:
                     f = open(os.path.join(pagination_folder, "{}.html".format(str(index))), 'w')
+                if index > 0:
+                    previous_page = ".".join([str(index-2), "html"])
+
+                if index < total_pages-1:
+                    next_page = ".".join([str(index+2), "html"])
+
                 f.write(self.env.get_template("index.html").render({
                     "pagination_posts": posts,
                     "current_page": index,
-                    "total_pages": total_pages
+                    "total_pages": total_pages,
+                    "previous_page": previous_page,
+                    "next_page": next_page
                 }))
             finally:
                 f.close()
@@ -300,7 +309,7 @@ class Episode:
             return print("not specify deploy repo.")
         self.git_repo.checkout_or_create('source')
         self.git_repo.add_and_commit()
-        self.git_repo.push('source')  # todo: if conflict?
+        self.git_repo.push('source', force=True)  # todo: if conflict?
         self.build()
         self.git_repo.checkout_or_create("master")
         self.git_repo.pull("master")
