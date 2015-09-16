@@ -38,4 +38,4 @@ $ episode watch
 ## TODO
 - [x] 主题
 - [ ] 安装
-- [ ] Build as service
+- [x] Build as service
