@@ -19,7 +19,7 @@ import subprocess
 import http.server
 from datetime import date
 from jinja2 import Environment, FileSystemLoader
-from markdown import Markdown
+from markdown2 import Markdown
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from docopt import docopt
@@ -42,7 +42,7 @@ CONTENT_CONF = {
 md_pattern = re.compile(r"(\n)*(?P<meta>(.*?\n)*?)\-+\n*?")
 post_name_pattern = re.compile(r"(?P<year>(\d{4}))\-(?P<month>(\d{1,2}))\-(?P<day>(\d{1,2}))\-(?P<alias>(.+))")
 
-md = Markdown()
+md = Markdown(extras=["fenced-code-blocks", "tables"])
 
 
 def chunks(l, n):
@@ -232,7 +232,6 @@ class Episode:
     def _render_html_file(self, page):
         target_path = os.path.join(self.destination, page.get("path"))
         target_file = os.path.join(target_path, page.get("alias")) + ".html"
-        print(target_path)
         if not os.path.exists(target_path):
             os.makedirs(target_path)
         with open(target_file, 'w') as f:
@@ -300,6 +299,7 @@ class Episode:
         for path in CONTENT_CONF.keys():
             if os.path.isdir(path):
                 self._walk_files(path)
+        print(self.posts)
         self._render()
         print("Done!", "Result path:")
         print(self.destination)
