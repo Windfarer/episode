@@ -214,7 +214,7 @@ class Episode:
         return self.env.get_template("{}.html".format(template_name))
 
     def _walk_files(self, content_type):
-        for f in os.listdir(content_type):
+        for f in sorted(os.listdir(content_type), key=lambda x:os.path.getctime(x), reverse=True):
             if os.path.splitext(f)[-1] in PAGE_FILE_EXT:
                 file_obj = Page(os.path.join(content_type, f),
                                 config=self.config)
