@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>{{site.title}}</title>
+    <link href="/css/breeze.css" rel="stylesheet">
+    <link href="/css/styles.css" rel="stylesheet">
+</head>
+<body>
+<header class="sidebar">
+    <div class="side-header">
+        <div class="avatar-wrapper">
+            <img class="avatar" src="/images/avatar.jpg">
+        </div>
+        <div class="side-info">
+            <p>{{site.title}}</p>
+        </div>
+    </div>
+    <div class="side-panel">
+        <div class="sns">
+            <div class="sns-icon">
+                <a href="{{site.url}}">
+                    <img class="icon" src="/icons/home.svg" alt="index" style="height: 40px;width: 40px;margin: 0;">
+                </a>
+            </div>
+            <div class="sns-icon">
+                <a href="{{site.github}}">
+                    <img class="icon" src="/icons/github.svg" alt="github">
+                </a>
+            </div>
+            <div class="sns-icon">
+                <a href="{{site.wordpress}}">
+                    <img class="icon" src="/icons/wordpress.svg" alt="wordpress">
+                </a>
+            </div>
+            <div class="sns-icon">
+                <a href="{{site.lofter}}">
+                    <img class="icon" src="/icons/lofter.svg" alt="lofter" style="height: 18px;width: 18px;margin: 11px 11px 11px 11px;">
+                </a>
+            </div>
+        </div>
+        <ul class="side-menu">
+            {% for page in pages %}
+            <li><a href="{{page.url}}">{{page.title}}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+</header>
+{% block main %}{% endblock %}
+</body>
+</html>

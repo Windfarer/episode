@@ -1,0 +1,23 @@
+# Path settings
+root: .
+template_folder: templates
+posts_folder: posts
+destination: site
+plugins: plugins
+templates: templates
+path_template: "{year}/{month}/{day}"
+static_folders: ["css", "js"]
+file_ext: [".md", ".markdown"]
+
+
+#site settings
+title: Windfarer's Episode
+author: Eric Yang(Windfarer)
+email: windfarer@gmail.com
+url: http://windfarer.github.io
+paginate: 5
+time_zone: Asia/Shanghai
+
+# Serving
+host: 127.0.0.1
+port: 5000

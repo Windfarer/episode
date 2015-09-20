@@ -41,9 +41,9 @@ class WebHookHandler(BaseHTTPRequestHandler):
         return
 
 
-if __name__ == "__main__":
+def run():
     port = 8000
-    Handler = WebHookHandler
-    httpd = HTTPServer(("0.0.0.0", port), Handler)
+    handler = WebHookHandler
+    httpd = HTTPServer(("0.0.0.0", port), handler)
     print("Serving at http://127.0.0.1:{port}".format(port=port))
     httpd.serve_forever()

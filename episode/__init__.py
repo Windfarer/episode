@@ -7,6 +7,8 @@
     episode -h | --help | --version
 """
 
+__version__ = '0.1.0'
+
 import os
 import re
 import sys
@@ -398,6 +400,6 @@ def command_options(arguments):
     elif arguments["deploy"]:
         start_deploy()
 
-if __name__ == '__main__':
-    arguments = docopt(__doc__, version='0.0.1')
+def run():
+    arguments = docopt(__doc__, version=__version__)
     command_options(arguments)

@@ -1,0 +1,4 @@
+[console_scripts]
+episode = episode:run
+episode-webhooks = episode.webhooks:run
+

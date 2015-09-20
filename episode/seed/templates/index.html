@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="content">
+    <div class="page-container">
+        {%for post in pagination_posts%}
+        <article class="page">
+            <h1 class="page-title"><a href="{{post.url}}">{{post.title}}</a></h1>
+            <div class="page-meta">
+                <span class="meta-item">DATE: {{post.date}}</span>
+                <span class="meta-item">AUTHOR: {{site.author}}</span>
+            </div>
+            <div class="page-content markdown">
+                {{post.content}}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    <div class="pagination">
+        {% if previous_page %}
+        <div class="previous-page">
+            <a href="{{previous_page}}"><img class="arrow-icon-left" src="/icons/arrow-left.svg" alt="previous-page"></a>
+        </div>
+        {% endif %}
+        {% if next_page %}
+        <div class="next-page">
+            <a href="{{next_page}}"><img class="arrow-icon-right" src="/icons/arrow-right.svg" alt="next-page"></a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="content">
+    <div class="page-container">
+        <article class="page">
+            <h1 class="page-title"><a href="{{url}}">{{title}}</a></h1>
+            <div class="page-meta">
+                <span class="meta-item">DATE: {{date}}</span>
+                <span class="meta-item">AUTHOR: {{site.author}}</span>
+            </div>
+            <div class="page-content markdown">
+                {{content}}
+            </div>
+        </article>
+    </div>
+</div>
+{% endblock %}
