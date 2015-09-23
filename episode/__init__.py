@@ -26,9 +26,8 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from docopt import docopt
 
-# EPISODE_PATH = os.path.split(os.path.abspath(sys.argv[0]))[0]
-# SEED_PATH = os.path.join(EPISODE_PATH, "seed")
-SEED_PATH = "seed"
+EPISODE_PATH = os.path.dirname(__file__)
+SEED_PATH = os.path.join(EPISODE_PATH, "seed")
 TMP_ROOT_PATH = "/tmp"
 TMP_FOLDER_PREFIX = "episode"
 PAGINATION_PATH = "p"
@@ -175,7 +174,8 @@ class Initializer:
             return
         shutil.copytree(SEED_PATH, project_name)
         os.chdir(project_name)
-
+        for content_type in CONTENT_CONF.keys():
+            os.mkdir(content_type)
         self.git_repo = GitRepo()
         self.git_repo.init()
         self.git_repo.checkout_or_create()
