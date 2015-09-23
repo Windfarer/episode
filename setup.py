@@ -23,5 +23,6 @@ setup(
             'episode=episode:run',
             'episode-webhooks=episode.webhooks:run',
         ]
-    }
+    },
+    include_package_data=True
 )

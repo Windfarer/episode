@@ -1,8 +1,0 @@
-docopt
-Jinja2
-markdown2
-MarkupSafe
-pathtools
-Pygments
-PyYAML
-watchdog
