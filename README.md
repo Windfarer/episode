@@ -34,8 +34,3 @@ $ episode server
 ```
 $ episode watch
 ```
-
-## TODO
-- [x] 主题
-- [ ] 安装
-- [x] Build as service

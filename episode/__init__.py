@@ -317,7 +317,6 @@ class Episode:
         self.git_repo.push('source', force=True)  # todo: if conflict?
         self.build()
         self.git_repo.checkout_or_create("master")
-        self.git_repo.pull("master")
         self._clean_folder()
         self._copy_files(self.destination, os.getcwd())
         self.git_repo.add_and_commit()
