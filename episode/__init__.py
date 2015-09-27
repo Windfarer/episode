@@ -76,7 +76,6 @@ class Page:
         self._date_template = date_template
         self.config = config
         self._filename, self._filename_extension = os.path.splitext(os.path.basename(file))
-
         self.formatted_date = None
 
         self._file = open(file, "r").read()
@@ -108,13 +107,13 @@ class Page:
         matched = md_pattern.match(self._file)
         meta = matched.group("meta")
         self.data = yaml.load(meta)
-        self.data.update({
+        self.data.update({   # todo: to object attribute
             "date": self.formatted_date if self.formatted_date else None,
             "content": md.convert(self._file[matched.end():]),
             "path": self.path,
             "alias": self.alias,
             "template": ".".join([self.data["template"], "html"]) if self.data["template"] else "default.html",
-            "url": os.path.join(self.config.get("url"), self.path, self.alias)
+            "url": os.path.join(self.config.get("url"), self.path, self.alias),
         })
 
 
@@ -217,20 +216,11 @@ class Episode:
         return self.env.get_template("{}.html".format(template_name))
 
     def _walk_files(self, content_type):
-        for f in sorted(os.listdir(content_type),
-                        key=lambda x: os.path.getctime(os.path.join(content_type, x)),
-                        reverse=True):
+        for f in os.listdir(content_type):
             if os.path.splitext(f)[-1] in PAGE_FILE_EXT:
                 file_obj = Page(os.path.join(content_type, f),
                                 config=self.config)
                 getattr(self, CONTENT_CONF[content_type]).append(file_obj.data)
-
-    def _update_data(self):
-        self.posts.sort(key=lambda x: x["date"], reverse=True)
-        self.env.globals.update({
-            "posts": self.posts,
-            "pages": self.pages
-        })
 
     def _render_html_file(self, page):
         target_path = os.path.join(self.destination, page.get("path"))
@@ -244,6 +234,7 @@ class Episode:
         pagination = self.config.get("paginate")
         pagination_folder = os.path.join(self.destination, PAGINATION_PATH)
         post_count = len(self.posts)
+        print(self.posts)
         total_pages = math.ceil(post_count/pagination)
         previous_page = next_page = None
         if post_count > pagination:
@@ -302,7 +293,6 @@ class Episode:
         for path in CONTENT_CONF.keys():
             if os.path.isdir(path):
                 self._walk_files(path)
-        print(self.posts)
         self._render()
         print("Done!", "Result path:")
         print(self.destination)
