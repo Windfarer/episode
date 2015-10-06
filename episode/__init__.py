@@ -105,16 +105,19 @@ class Page:
 
     def _parse_file(self):
         matched = md_pattern.match(self._file)
-        meta = matched.group("meta")
-        self.data = yaml.load(meta)
-        self.data.update({   # todo: to object attribute
-            "date": self.formatted_date if self.formatted_date else None,
+        meta = yaml.load(matched.group("meta"))
+        self.data = {
             "content": md.convert(self._file[matched.end():]),
             "path": self.path,
             "alias": self.alias,
             "template": ".".join([self.data["template"], "html"]) if self.data["template"] else "default.html",
             "url": os.path.join(self.config.get("url"), self.path, self.alias),
-        })
+        }
+        if meta.get("date"):
+            self.data["date"] = meta.get("date").strftime(self._date_template)
+        else:
+            self.data["date"] = self.formatted_date
+
 
 
 class GitRepo:
@@ -389,6 +392,7 @@ def command_options(arguments):
         start_watch()
     elif arguments["deploy"]:
         start_deploy()
+
 
 def run():
     arguments = docopt(__doc__, version=__version__)
