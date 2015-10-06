@@ -107,6 +107,7 @@ class Page:
         matched = md_pattern.match(self._file)
         meta = yaml.load(matched.group("meta"))
         self.data = {
+            "title": meta.get("title"),
             "content": md.convert(self._file[matched.end():]),
             "path": self.path,
             "alias": self.alias,
