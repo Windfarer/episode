@@ -111,14 +111,13 @@ class Page:
             "content": md.convert(self._file[matched.end():]),
             "path": self.path,
             "alias": self.alias,
-            "template": ".".join([self.data["template"], "html"]) if self.data["template"] else "default.html",
+            "template": ".".join([meta["template"], "html"]) if meta.get("template") else "default.html",
             "url": os.path.join(self.config.get("url"), self.path, self.alias),
         }
         if meta.get("date"):
             self.data["date"] = meta.get("date").strftime(self._date_template)
         else:
             self.data["date"] = self.formatted_date
-
 
 
 class GitRepo:
