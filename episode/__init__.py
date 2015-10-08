@@ -11,7 +11,6 @@ __version__ = '0.1.0'
 
 import os
 import re
-import sys
 import yaml
 import time
 import math
@@ -19,7 +18,7 @@ import uuid
 import shutil
 import subprocess
 import http.server
-from datetime import date
+from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from markdown2 import Markdown
 from watchdog.observers import Observer
@@ -95,7 +94,7 @@ class Page:
             year = int(matched.group("year"))
             month = int(matched.group("month"))
             day = int(matched.group("day"))
-            self.date = date(year, month, day)
+            self.date = datetime(year=year, month=month, day=day)
             self.alias = matched.group("alias")
             self.formatted_date = self.date.strftime(self._date_template)
             self.type = "post"
@@ -115,9 +114,9 @@ class Page:
             "url": os.path.join(self.config.get("url"), self.path, self.alias),
         }
         if meta.get("date"):
-            self.data["date"] = meta.get("date").strftime(self._date_template)
+            self.data["date"] = meta.get("date")
         else:
-            self.data["date"] = self.formatted_date
+            self.data["date"] = self.date
 
 
 class GitRepo:
@@ -224,6 +223,7 @@ class Episode:
                 file_obj = Page(os.path.join(content_type, f),
                                 config=self.config)
                 getattr(self, CONTENT_CONF[content_type]).append(file_obj.data)
+        self.posts.sort(key=lambda x: x['date'], reverse=True)
 
     def _render_html_file(self, page):
         target_path = os.path.join(self.destination, page.get("path"))
