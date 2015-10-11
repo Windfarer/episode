@@ -11,6 +11,7 @@ __version__ = '0.1.0'
 
 import os
 import re
+import sys
 import yaml
 import time
 import math
@@ -75,6 +76,7 @@ class Page:
         self._date_template = date_template
         self.config = config
         self._filename, self._filename_extension = os.path.splitext(os.path.basename(file))
+        self.date = None
         self.formatted_date = None
 
         self._file = open(file, "r").read()
