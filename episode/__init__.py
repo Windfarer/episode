@@ -205,6 +205,7 @@ class Episode:
         self._get_config()
         self.env = Environment(loader=FileSystemLoader(self._get_path(TEMPLATE_PATH)))
         self.env.globals["site"] = self.config
+        self.env.globals["pages"] = self.pages
 
         self.git_repo = GitRepo(self.config.get("deploy_repo"))
 
