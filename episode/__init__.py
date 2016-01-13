@@ -251,11 +251,13 @@ class Episode:
                     f = open(os.path.join(self.destination, "index.html"), 'w')
                 else:
                     f = open(os.path.join(pagination_folder, "{}.html".format(str(index))), 'w')
-                if index > 0:
+                if index == 1:
+                    previous_page = "index.html"
+                elif index > 1:
                     previous_page = ".".join([str(index-2), "html"])
 
                 if index < total_pages-1:
-                    next_page = ".".join([str(index+2), "html"])
+                    next_page = ".".join([str(index+1), "html"])
 
                 f.write(self.env.get_template("index.html").render({
                     "pagination_posts": posts,
@@ -342,7 +344,7 @@ class Episode:
             observer.stop()
 
 
-class FileChangeEventHandler(FileSystemEventHandler):
+class FileChangeEventHandler(FileSystemEventHandler):  # todo: watching
     def __init__(self, episode):
         self.episode = episode
 
