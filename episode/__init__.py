@@ -245,19 +245,19 @@ class Episode:
         previous_page = next_page = None
         if post_count > pagination:
             os.makedirs(pagination_folder)
-        for index, posts in enumerate(chunks(self.posts, pagination)):
+        for index, posts in enumerate(chunks(self.posts, pagination), start=1):
             try:
-                if index == 0:
+                if index == 1:
                     f = open(os.path.join(self.destination, "index.html"), 'w')
                 else:
                     f = open(os.path.join(pagination_folder, "{}.html".format(str(index))), 'w')
-                if index == 1:
+                if index == 2:
                     previous_page = "index.html"
                 elif index > 1:
-                    previous_page = ".".join([str(index-2), "html"])
+                    previous_page = os.path.join(PAGINATION_PATH, "{}.html".format(str(index-2)))
 
                 if index < total_pages-1:
-                    next_page = ".".join([str(index+1), "html"])
+                    next_page = os.path.join(PAGINATION_PATH, "{}.html".format(str(index+1)))
 
                 f.write(self.env.get_template("index.html").render({
                     "pagination_posts": posts,
