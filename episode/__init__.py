@@ -256,7 +256,7 @@ class Episode:
                 elif index > 1:
                     previous_page = os.path.join(PAGINATION_PATH, "{}.html".format(str(index-2)))
 
-                if index < total_pages-1:
+                if index < total_pages:
                     next_page = os.path.join(PAGINATION_PATH, "{}.html".format(str(index+1)))
 
                 f.write(self.env.get_template("index.html").render({
